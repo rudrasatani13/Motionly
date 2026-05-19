@@ -14,6 +14,7 @@ Motionly is a PWA-first, privacy-first AI fitness coach foundation. The MVP road
 - **Phase 4 — Project Folder Structure & Architecture Standards:** complete.
 - **Phase 5 — Design System Foundation: Tokens & Theme:** complete.
 - **Phase 6 — Routing Architecture Setup:** complete.
+- **Phase 7 — Wireframing & User Flow Documentation:** complete (docs only; no app screens were built).
 
 ### Honest scope note
 
@@ -29,6 +30,8 @@ This repository is an early-stage foundation. The following are **planned for la
 - Settings UI, accessibility audit, i18n
 
 Phase 6 introduced React Router 6 and a routing skeleton: every route a future phase will need now has an honest placeholder page that names the route, the URL pattern, and the future phase that will build the real screen. There is **no fake user state, no fake workouts, no fake stats, no fake AI feedback, and no fake subscription state anywhere in the repo.** Protected routes are wrapped in a structural-only `<RequireAuth>` guard; real authentication is still deferred to Phase 32.
+
+Phase 7 added UX planning documentation only — wireframes for every planned screen, user-flow narratives, and Mermaid diagrams of the five key journeys. Wireframes live in [`docs/wireframes/`](./docs/wireframes/) and user-flow narratives in [`docs/USER_FLOWS.md`](./docs/USER_FLOWS.md). **No runtime app code changed in Phase 7.** Sample names and numbers in the wireframes are clearly labeled illustrative documentation and must not be pasted into product code as if real workouts, users, or stats existed.
 
 ---
 
@@ -112,6 +115,8 @@ Phase 4 added the scalable folder structure and standards that everything else b
 
 - **[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)** — folder layout, layering rules, the platform-adapter pattern, privacy architecture, and a checklist for adding new features.
 - **[`docs/CODING_STANDARDS.md`](./docs/CODING_STANDARDS.md)** — TypeScript, React, hook, service, ML, styling, naming, and import rules.
+- **[`docs/wireframes/`](./docs/wireframes/)** — Phase 7 low-fidelity UX blueprints for every planned screen plus a Mermaid `flow-diagrams.md`.
+- **[`docs/USER_FLOWS.md`](./docs/USER_FLOWS.md)** — Phase 7 narratives for the five critical user journeys (first-time, returning, subscription conversion, permission failure, low-confidence AI).
 - **[`tailwind.config.ts`](./tailwind.config.ts)** — Motionly brand colors, neutral scale, font stack, and typography utilities.
 
 Lint and format are wired up via ESLint + Prettier and enforced by a Husky pre-commit hook (`pnpm format:check && pnpm lint && pnpm typecheck`). Run `pnpm lint` / `pnpm format` manually whenever you want.

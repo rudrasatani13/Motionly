@@ -300,6 +300,23 @@ When Phase 32 lands, the implementation inside `RequireAuth.tsx` swaps in real s
 
 ---
 
+## 10c. UX Planning Documentation (Phase 7)
+
+Phase 7 introduced **documentation-only** UX artefacts. No runtime code, components, or routes were added or modified.
+
+- **Wireframes** live under [`docs/wireframes/`](./wireframes/). One markdown file per planned screen (splash, onboarding, dashboard, library, detail, camera permission, camera setup, active workout, mid-workout feedback, post-set, summary, progress, score details, profile, paywall). Each file documents purpose, route, future phase, entry / exit points, ASCII low-fidelity layout, content rules, future data requirements, states (loading / empty / error / offline / permission-denied), accessibility, privacy notes, and an explicit "do not fake" list.
+- **User flows** live in [`docs/USER_FLOWS.md`](./USER_FLOWS.md). Five end-to-end journeys: first-time user (target: first coached rep under 3 minutes), returning user, subscription conversion, camera permission failure, low-confidence AI.
+- **Flow diagrams** live in [`docs/wireframes/flow-diagrams.md`](./wireframes/flow-diagrams.md). Mermaid renderings of the same five flows.
+
+### Rules
+
+- **Future implementation phases consult these docs first.** Before building a screen in `src/pages/`, read the corresponding wireframe. If implementation diverges from the wireframe, update the wireframe in the same change set — staleness is worse than absence.
+- **Wireframes are not a runtime source of truth for fake data.** Sample workout names, score numbers, and dates in the markdown are clearly labeled illustrative documentation. They must not be hard-coded into pages, stores, or seed data.
+- **Visual styling follows Phase 5 tokens.** Wireframes are deliberately low-fidelity. Real visual styling pulls from `tailwind.config.ts` (Motionly brand colors, neutral scale, typography utilities) and the clean Apple-style minimal direction established for the product.
+- **Wireframes do not introduce routes.** Phase 6 already shipped the route surface. Where a wireframed sub-state (e.g. post-set summary, mid-workout feedback) does not have a route today, the wireframe documents whether it is part of an existing route, a modal state, or a future routing decision.
+
+---
+
 ## 11. Things This Document Does Not Cover
 
 - **Coding style, naming, lint rules:** see [`CODING_STANDARDS.md`](./CODING_STANDARDS.md).

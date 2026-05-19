@@ -83,6 +83,17 @@ If two rules conflict, **`ARCHITECTURE.md` wins on structure, this file wins on 
 
 ---
 
+## 6b. UX Documentation Discipline (Phase 7)
+
+Phase 7 shipped UX planning docs under [`../wireframes/`](./wireframes) and [`../USER_FLOWS.md`](./USER_FLOWS.md). When you implement a screen in a later phase:
+
+- **Read the relevant wireframe first.** Before opening a file under `src/pages/`, find its wireframe (`docs/wireframes/0X-*.md`) and the user flow it participates in (`docs/USER_FLOWS.md`). Treat them as the agreed design intent.
+- **Update docs when implementation diverges.** If you make a deliberate change to the layout, copy, or flow, edit the wireframe in the same PR. Stale documentation that says one thing while the code does another is worse than no documentation.
+- **Do not turn documentation placeholders into runtime fake data.** Sample names ("Lower Body Foundations"), numbers ("avg form 72"), and per-rule scores in the wireframes are illustrative documentation only. They are not seed data, mocks, or fixtures — and they must not be copied into product code as if real workouts, users, or stats existed.
+- **Carry the design principles forward.** [`docs/wireframes/00-design-principles.md`](./wireframes/00-design-principles.md) is normative. Implementation choices that conflict with those principles are a review block, not a discussion.
+
+---
+
 ## 7. Styling
 
 - **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.

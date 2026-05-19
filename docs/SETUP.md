@@ -411,6 +411,24 @@ After `pnpm install`, validate the routing skeleton in both `pnpm dev` and `pnpm
 
 After `pnpm build`, inspect `dist/assets/` — there should be one chunk per lazy-loaded page. Confirm in DevTools → Network that navigating to a previously unvisited route fetches its dedicated chunk.
 
+## 16d. UX Documentation Reference (Phase 7)
+
+Phase 7 added planning documentation only — no runtime code changes. Use it as the design source when implementing screens in later phases.
+
+- **Wireframes:** [`./wireframes/`](./wireframes/) — one markdown file per planned screen, plus `00-design-principles.md` and `flow-diagrams.md` (Mermaid renderings of the five core flows).
+- **User flows:** [`./USER_FLOWS.md`](./USER_FLOWS.md) — narrative journeys for first-time user, returning user, subscription conversion, camera permission failure, and low-confidence AI.
+
+No additional commands are required for Phase 7. The normal documentation, lint, and format checks already cover Markdown:
+
+```bash
+pnpm format:check    # Prettier verifies Markdown
+pnpm lint            # ESLint over src + tooling files (Markdown not linted)
+pnpm typecheck       # No-op for docs; still part of pre-commit
+pnpm build           # Sanity check that nothing in src/ broke
+```
+
+GitHub renders the Mermaid diagrams in `wireframes/flow-diagrams.md` inline. To iterate on a diagram visually, copy a single block into [mermaid.live](https://mermaid.live).
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:
