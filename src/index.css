@@ -1,0 +1,39 @@
+:root {
+  color-scheme: dark;
+
+  --motionly-bg: #0a0a0f;
+  --motionly-bg-elevated: #111119;
+  --motionly-fg: #f5f5f7;
+  --motionly-fg-muted: #9a9aa6;
+  --motionly-border: rgba(255, 255, 255, 0.08);
+  --motionly-accent: #f5f5f7;
+
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--motionly-bg);
+  color: var(--motionly-fg);
+}
+
+body {
+  min-height: 100dvh;
+  overflow-x: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}

@@ -248,3 +248,215 @@ Once **Phase 2** completes and the Vite app exists:
 Phase 1 is complete when the checklist above passes on your machine.
 
 Phase 2 (next) scaffolds the Vite + React + TypeScript app, configures PWA support, and adds the initial app shell. Do not pre-create app code, components, screens, routes, or backend integrations — those each belong to their own phase in `MOTIONLY_MASTER_PLAN.md`.
+
+---
+
+# Phase 2 — Running the App
+
+Phase 2 has been completed: the repository is now a Vite + React + TypeScript Progressive Web App with strict TypeScript, absolute imports, and an installable PWA shell. The sections below are the operational guide for working with that app.
+
+## 11. Installing Dependencies
+
+From the repository root:
+
+```bash
+nvm use           # match the Node version pinned in .nvmrc
+pnpm install
+```
+
+`pnpm install` reads `pnpm-workspace.yaml` and allows the `esbuild` postinstall script (required for Vite). No other package builds are allowed by default.
+
+## 12. Running the Dev Server (Desktop)
+
+```bash
+pnpm dev
+```
+
+Vite starts on http://localhost:5173. The dev script passes `--host` so the server also binds to your LAN IP. The terminal prints both URLs:
+
+```
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.x.x:5173/
+```
+
+If you want a strictly local-only dev server (no LAN exposure), use:
+
+```bash
+pnpm dev:local
+```
+
+## 13. Running on a Physical Phone (LAN)
+
+1. Confirm both laptop and phone are on the same Wi-Fi network (see §7 for prerequisites).
+2. Start `pnpm dev`.
+3. On the phone, open Chrome and navigate to the **Network** URL printed by Vite (e.g. `http://192.168.x.x:5173/`).
+4. The Motionly app shell should load with hot reload working — editing `src/App.tsx` updates the page on the phone within a second.
+
+If the phone cannot reach the URL, revisit §8 (Troubleshooting).
+
+> Note: PWA installation prompts and the service worker only run against the **production build**, not the dev server. Use `pnpm build && pnpm preview` for install / offline testing — see §15.
+
+## 14. Building for Production
+
+```bash
+pnpm build
+```
+
+This runs the TypeScript project build (`tsc -b`), then `vite build`. Output lands in `dist/`, including:
+
+- `dist/index.html` — entry HTML
+- `dist/assets/*` — hashed JS and CSS bundles
+- `dist/manifest.webmanifest` — PWA manifest
+- `dist/sw.js` + `dist/workbox-*.js` — generated service worker and Workbox runtime
+- `dist/favicon.svg`, `dist/favicon.ico`, `dist/favicon-96x96.png`, `dist/apple-touch-icon.png`,
+  `dist/web-app-manifest-192x192.png`, `dist/web-app-manifest-512x512.png` — brand icons
+- `dist/registerSW.js` — service worker registration helper
+
+If the build prints TypeScript errors, fix them before continuing — strict mode is enabled and `tsc -b` blocks the Vite build on failure.
+
+## 15. Previewing the Production Build
+
+```bash
+pnpm preview
+```
+
+This serves the `dist/` output on http://localhost:4173 (and your LAN IP, since `preview --host` is set). Use this URL when:
+
+- Installing the PWA on Android Chrome (the install icon does **not** appear on the dev server).
+- Testing service-worker behavior and offline caching.
+- Running Lighthouse PWA audits.
+
+> Why preview and not dev? `vite-plugin-pwa` is configured with `devOptions.enabled: false`, so the service worker is only generated and registered in the production build. This is intentional — running an SW in dev causes confusing stale-asset behavior during hot reload.
+
+## 16. Type Checking
+
+```bash
+pnpm typecheck
+```
+
+Runs `tsc -b --noEmit` against both `tsconfig.app.json` (app source) and `tsconfig.node.json` (Vite config). Use it as a fast pre-commit check — `pnpm build` runs the same checks plus the actual bundle.
+
+## 17. Testing PWA Installability (Android Chrome)
+
+PWA installability requires:
+
+- A valid `manifest.webmanifest` linked from the HTML
+- A registered, active service worker
+- The page served over HTTPS **or** `localhost`/LAN IPs (Chrome treats `http://192.168.x.x` as a secure-enough context for SW + manifest only when the IP is in the local network range and you have already enabled the relevant flags; for reliable phone-side install testing, see the tunneling note below).
+
+Steps:
+
+1. `pnpm build && pnpm preview`
+2. On the laptop, open Chrome and navigate to http://localhost:4173/.
+3. Open DevTools → **Application** panel → **Manifest**. Confirm name "Motionly", theme color `#0A0A0F`, and the three icons are listed without warnings.
+4. Open DevTools → **Application** → **Service workers**. Confirm `sw.js` is **activated and running**.
+5. The install icon should appear at the right edge of the URL bar — click it to install Motionly as a desktop PWA. Launch it; the window should open without browser chrome, in standalone mode.
+
+For the phone:
+
+- The easiest path is to use a tunneling tool (`cloudflared tunnel`, `ngrok http 4173`, etc.) to expose `preview` over HTTPS, then open the tunnel URL on the phone. Chrome will offer "Add to Home Screen" / "Install app".
+- Alternatively, deploy the `dist/` output to any static host with HTTPS (staging URL recommended in Phase 3).
+- Pure LAN install of the PWA on the phone is unreliable across Android versions — use a tunnel or staging URL for that test.
+
+After install:
+
+- Tap the Motionly icon on the home screen. The app should open full-screen with no address bar (standalone display).
+- The launch background and theme should match `#0A0A0F`.
+
+## 18. Testing Offline Behavior
+
+1. `pnpm build && pnpm preview`
+2. Open http://localhost:4173/ in Chrome and let it load fully (the service worker precaches all build assets on first load).
+3. Open DevTools → **Network** → set throttling to **Offline**.
+4. Reload the page. The app shell should still render. The status pill at the bottom should read "PWA foundation initialized · offline ready".
+5. Optionally, in DevTools → **Application** → **Service workers**, check **Offline** and reload — same expectation.
+
+> Phase 2 ships only the app shell, so there is no further content to verify offline. Runtime caching rules for `/models/`, `/audio/`, and font requests are pre-wired in `vite.config.ts` but are exercised in later phases when those files exist.
+
+## 19. Project Layout (Phase 2)
+
+```
+.
+├── index.html                  # Vite entry HTML
+├── package.json                # scripts and deps
+├── pnpm-workspace.yaml         # pnpm-only config (allowBuilds: esbuild)
+├── tsconfig.json               # references app + node configs
+├── tsconfig.app.json           # strict TS + path aliases for src/
+├── tsconfig.node.json          # TS for vite.config.ts
+├── vite.config.ts              # React + tsconfig-paths + VitePWA
+├── public/
+│   ├── favicon.svg             # in-tab Motionly mark (vector)
+│   ├── favicon.ico             # legacy / Windows tab icon
+│   ├── favicon-96x96.png       # small raster favicon
+│   ├── apple-touch-icon.png    # 180×180 iOS home-screen icon
+│   ├── web-app-manifest-192x192.png  # PWA icon (any)
+│   ├── web-app-manifest-512x512.png  # PWA icon (any + maskable)
+│   ├── Motionly.png            # 1024×1024 brand source (not precached)
+│   ├── models/                 # reserved for ML models (Phase 17)
+│   └── audio/cues/             # reserved for voice cues (Phase 25)
+├── src/
+│   ├── main.tsx                # React entry, SW registration
+│   ├── App.tsx                 # Minimal app shell
+│   ├── App.css                 # Shell styles
+│   ├── index.css               # Global tokens + reset
+│   ├── sw-register.ts          # Workbox SW lifecycle helper
+│   └── vite-env.d.ts           # Vite / PWA ambient types
+└── docs/SETUP.md               # This file
+```
+
+## 20. Absolute Imports
+
+`vite-tsconfig-paths` is wired up so the following aliases resolve in both Vite and TypeScript:
+
+| Alias              | Resolves to            |
+|--------------------|------------------------|
+| `@/`               | `src/`                 |
+| `@components/`     | `src/components/`      |
+| `@pages/`          | `src/pages/`           |
+| `@hooks/`          | `src/hooks/`           |
+| `@services/`       | `src/services/`        |
+| `@platform/`       | `src/platform/`        |
+| `@ml/`             | `src/ml/`              |
+| `@store/`          | `src/store/`           |
+| `@utils/`          | `src/utils/`           |
+| `@types/`          | `src/types/`           |
+| `@assets/`         | `src/assets/`          |
+| `@theme/`          | `src/theme/`           |
+| `@router/`         | `src/router/`          |
+| `@i18n/`           | `src/i18n/`            |
+
+Only the directories required for Phase 2 (`@/`) actually exist yet — the rest are reserved for later phases and will be created when those phases need them. There is no need to pre-create empty directories.
+
+## 21. What Phase 2 Intentionally Does NOT Include
+
+Per `MOTIONLY_MASTER_PLAN.md`, the following are deferred to their own phases. Do **not** add any of these in Phase 2 commits:
+
+- Routing (Phase 6)
+- Design system, theme tokens beyond the minimal shell (Phase 5)
+- Splash / launch experience (Phase 10)
+- Onboarding screens (Phases 11–12)
+- Dashboard, workout library, workout detail (Phases 13–15)
+- Camera permissions, MediaPipe, pose detection, exercise engines (Phases 16–24)
+- Voice feedback, skeleton overlay (Phases 25–26)
+- State management (Zustand) and IndexedDB (Phases 29–30)
+- Supabase backend, authentication (Phases 31–32)
+- Stripe / Razorpay, paywall, free-tier limits (Phases 36–38)
+- i18n, Hindi pack (Phases 42–43)
+- Web Push, notifications (Phase 44)
+- Settings, dark-mode tokens, accessibility audit (Phases 45–47)
+
+The current `src/App.tsx` is **only** an honest app shell with the Motionly name, tagline, and a single status pill that reflects PWA / service-worker readiness. There is no fake user state, fake stats, fake AI claim, or placeholder workout content.
+
+## 22. Phase 2 Success Checklist
+
+Before considering Phase 2 done locally:
+
+- [ ] `pnpm install` succeeds without errors.
+- [ ] `pnpm typecheck` passes with no errors (strict mode is on).
+- [ ] `pnpm build` produces `dist/` with `sw.js`, `manifest.webmanifest`, and all six brand icons.
+- [ ] `pnpm preview` serves the app at http://localhost:4173/.
+- [ ] DevTools → Application → Service workers shows `sw.js` activated.
+- [ ] DevTools → Application → Manifest shows no warnings.
+- [ ] Lighthouse PWA audit ≥ 90 on the preview URL.
+- [ ] The same preview URL loads on a physical phone via the LAN IP (install testing may require a tunnel — see §17).
+- [ ] Offline reload after first load still renders the app shell.

@@ -1,0 +1,32 @@
+{
+  "name": "motionly",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Motionly — Move Better. A PWA-first fitness app.",
+  "scripts": {
+    "dev": "vite --host",
+    "dev:local": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "workbox-window": "^7.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.5",
+    "vite-plugin-pwa": "^0.21.1",
+    "vite-tsconfig-paths": "^5.1.4"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.1.3"
+}
