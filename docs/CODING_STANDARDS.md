@@ -124,6 +124,21 @@ Phase 9 introduced the feedback / status / progress component library under `src
 
 ---
 
+## 6e. Launch Experience (Phase 10)
+
+Phase 10 ships the launch orchestration layer under `src/launch/`, the launch UI under `src/components/launch/`, the read-only `hasOnboarded` reader in `src/platform/onboarding-storage.ts`, and the inline pre-React splash in `index.html`. Full module map and rationale live in [`ARCHITECTURE.md`](./ARCHITECTURE.md) §10f.
+
+- **No fake auth / onboarding state at launch.** Neither `<LaunchGate>`, `useLaunchDecision`, `getLaunchAuthState`, nor `readHasOnboarded` may seed fake users, fake sessions, fake tokens, or fake `hasOnboarded` writes. The truthful answers today are `'not-implemented'` and `false`; do not paper over them.
+- **No fake loading copy on the splash or launch screen.** Brand reveal only — wordmark + tagline. No "Loading AI…", no "Analyzing movement…", no "Connecting to server…", no fake progress bar.
+- **Launch decisions use route constants.** Import `ROUTE_PATHS` from `@router/routePaths` everywhere in `src/launch/`. Do not inline `'/welcome'`, `'/'`, or any other route string.
+- **Do not bypass `src/platform/` for storage.** The launch gate may use `window.history.replaceState` once (it's the documented touch point for URL reconciliation before the router mounts), but any onboarding / theme / session storage access goes through an adapter in `src/platform/`.
+- **Read-only `hasOnboarded` in Phase 10.** Writing the flag belongs to Phase 12 once the onboarding completion step exists. Do not back-port a write helper into `@platform/onboarding-storage` until Phase 12.
+- **Future-safe auth only.** `getLaunchAuthState` returns `{ status: 'not-implemented', reason: 'auth-deferred-to-backend-phase' }` until Phase 32 lands real Supabase session rehydration. Do not install Supabase, fake tokens, or mock currentUser objects ahead of that phase.
+- **Toast actions extend, don't replace, the Phase 9 system.** The `ToastAction` type is a minimal opt-in. Toasts remain UI notifications; do not extend them into a parallel router, dialog, or push-notification system.
+- **SW update prompt never auto-reloads.** `useServiceWorkerUpdatePrompt` only reloads when the user taps the "Refresh" action. Do not call `window.location.reload()` from the event handler or from any other launch surface without user input.
+
+---
+
 ## 7. Styling
 
 - **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.

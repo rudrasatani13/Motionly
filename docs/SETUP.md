@@ -459,6 +459,63 @@ pnpm build           # Confirms the components bundle cleanly
 
 One new dependency was added: `framer-motion` (drives the score-ring sweep, cue-card slide / fade, rep-counter pulse, toast and confidence-banner transitions, all gated by `prefers-reduced-motion`). The toast system is an in-house Motionly queue — no `react-hot-toast` or similar third-party dependency was added. Phase 44 Web Push notifications remain unimplemented.
 
+## 16g. Launch Experience (Phase 10)
+
+Phase 10 added the splash + launch orchestration layer. No new dependencies were introduced. The same checks apply:
+
+```bash
+pnpm format:check    # Prettier verifies the new files
+pnpm lint            # ESLint surfaces unused vars / a11y issues
+pnpm typecheck       # Strict TS over the launch layer
+pnpm build           # Confirms the launch + SW prompt bundle cleanly
+```
+
+### Dev launch behavior (`pnpm dev`)
+
+1. `pnpm dev` — open the printed URL.
+2. On the first paint, the inline pre-React HTML splash should appear on a dark `#0A0A0F` canvas with the **Motionly** wordmark and **Move Better.** tagline. This must paint without a white flash on any system theme (light or dark).
+3. As soon as React hydrates, the React `<LaunchScreen>` takes over on the same dark canvas. The wordmark scales `0.9 → 1.0` with a fade-in; the tagline fades in ~200ms after. Total visible launch ≈ 1.8s.
+4. After the launch window:
+   - At `/` (root), the URL is rewritten to `/welcome` because real auth + onboarding are deferred. The Phase 6 `WelcomePage` placeholder renders.
+   - At a direct deep link (`/welcome`, `/login`, `/onboarding`, `/workouts`, `/workout/test-id/setup`, `/some-unknown-route`, …), the launch screen still shows for ≈ 1.8s and then the same deep link renders. No redirect is applied.
+5. Phase 6 routing, the bottom tab bar on main routes, the PWA status pill, and light / dark theme switching must continue to behave as documented in §16c.
+
+### Reduced motion check
+
+In the browser DevTools' **Rendering** panel, set "Emulate CSS media feature `prefers-reduced-motion`" to `reduce`. Reload. The React launch screen should drop the wordmark scale animation; both wordmark and tagline should appear via a minimal opacity fade. The total launch duration stays ~1.8s.
+
+### Production preview launch behavior (`pnpm build && pnpm preview`)
+
+1. `pnpm build && pnpm preview` — open http://localhost:4173/.
+2. Same launch sequence as dev: HTML splash → React `<LaunchScreen>` → destination route.
+3. Confirm DevTools → Application → Service workers shows `sw.js` activated (per §17).
+4. Theme switching, PWA install, and offline reload must continue to work as documented in §16b, §17, §18.
+
+### Service worker update prompt (production only)
+
+The SW update prompt is wired through the Phase 9 toast system via `useServiceWorkerUpdatePrompt()`. The hook listens for the `motionly:sw` `update-available` custom event dispatched from `src/sw-register.ts` and shows a sticky toast with title "Update available", message "Refresh to use the latest version.", and a "Refresh" action that calls `window.location.reload()`. Toasts only auto-dismiss when the user taps Refresh or the close button — no auto reload.
+
+Because the prompt only fires in production (`import.meta.env.PROD` + `sw-register` only registers in prod builds), the smoke test requires `pnpm build && pnpm preview`:
+
+1. `pnpm build && pnpm preview` — open http://localhost:4173/ once and let the service worker activate (Application → Service workers in DevTools).
+2. Keep the preview tab open.
+3. In a second terminal, change something trivial in `src/` (e.g. flip a string in a placeholder page).
+4. Run `pnpm build && pnpm preview` again. The second `vite build` produces a fresh `sw.js` and bumps the precache manifest.
+5. Switch back to the first browser tab. Within a few seconds Workbox detects the new SW and fires the `waiting` event; the toast "Update available — Refresh to use the latest version." appears with a Refresh action.
+6. Tapping Refresh reloads the tab and activates the new SW. Tapping the close button leaves the current build running until the next manual reload.
+
+The prompt does **not** fire in `pnpm dev` because no service worker registers there. The prompt is unrelated to Phase 44 Web Push notifications.
+
+### Android Chrome launch timing check
+
+On a physical Android phone over LAN (`pnpm dev`) or a tunneled preview build:
+
+1. Open the URL with the page already cleared from recent apps so the launch is cold.
+2. Visually confirm the inline HTML splash paints within the first frame (no white flash on either light or dark system theme).
+3. Confirm the React launch screen takes over without a visible re-paint of the background.
+4. Confirm total launch-to-destination duration is around 1.8s and within the master plan's 2s mid-range target.
+5. Confirm bottom safe-area inset is respected (no content under the nav handle on gesture-bar devices).
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:
@@ -570,19 +627,18 @@ After install:
 
 Per `MOTIONLY_MASTER_PLAN.md`, the following are deferred to their own phases. Do **not** add any of these until their phase is active:
 
-- Splash / launch experience (Phase 10)
 - Onboarding screens (Phases 11–12)
 - Dashboard, workout library, workout detail (Phases 13–15)
 - Camera permissions, MediaPipe, pose detection, exercise engines (Phases 16–24)
 - Voice feedback, skeleton overlay (Phases 25–26)
-- State management (Zustand) and IndexedDB (Phases 29–30)
+- State management (Zustand) and IndexedDB writes (Phases 29–30)
 - Supabase backend, authentication (Phases 31–32)
 - Stripe / Razorpay, paywall, free-tier limits (Phases 36–38)
 - i18n, Hindi pack (Phases 42–43)
 - Web Push, notifications (Phase 44)
 - Settings UI and accessibility audit (Phases 45–47)
 
-> Phase 6 (Routing Architecture) is complete. Routes, route guards, layouts, and a bottom tab bar exist — but every route renders only an honest skeleton placeholder. There is still no fake user state, fake stats, fake AI claim, or placeholder workout content in the repo.
+> Phase 10 (Splash & App Launch Experience) is complete. The inline HTML splash, the React `<LaunchScreen>`, the `<LaunchGate>` decision layer, and the service-worker update toast are wired up — but real onboarding, real `hasOnboarded` writes, real Supabase session rehydration, and real protected redirect rules are still deferred to their own phases.
 
 ## 22. Phase 2 Success Checklist
 

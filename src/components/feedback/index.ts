@@ -22,6 +22,7 @@ export {
   useToast,
   type ShowToastInput,
   type Toast,
+  type ToastAction,
   type ToastTone,
 } from './Toast';
 export { SkeletonLoader, type SkeletonShape } from './SkeletonLoader';

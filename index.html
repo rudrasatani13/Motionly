@@ -20,9 +20,66 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Motionly" />
     <title>Motionly — Move Better.</title>
+    <!--
+      Phase 10 — Pre-React splash.
+
+      Inline so it paints before any JS / CSS bundle resolves and before
+      React hydrates. Background is the Motionly dark canvas (#0A0A0F)
+      so the brand reveal feels consistent and so there is no white
+      flash between paint and React mount on any system theme. The
+      splash lives inside #root, so React's `createRoot(...).render(...)`
+      replaces it cleanly with no stale DOM leftovers. System font
+      stack keeps the splash from blocking on a network font.
+    -->
+    <style>
+      html,
+      body {
+        background-color: #0a0a0f;
+      }
+      .motionly-splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        background-color: #0a0a0f;
+        color: #f8fafc;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue', Arial,
+          sans-serif;
+        font-synthesis: none;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+          env(safe-area-inset-left);
+        z-index: 0;
+      }
+      .motionly-splash__wordmark {
+        font-size: 2rem;
+        line-height: 2.5rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin: 0;
+      }
+      .motionly-splash__tagline {
+        font-size: 1rem;
+        line-height: 1.5rem;
+        font-weight: 400;
+        color: #94a3b8;
+        margin: 0;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="motionly-splash" aria-hidden="true">
+        <p class="motionly-splash__wordmark">Motionly</p>
+        <p class="motionly-splash__tagline">Move Better.</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

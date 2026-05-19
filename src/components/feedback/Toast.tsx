@@ -34,6 +34,29 @@ const DEFAULT_DURATION_MS: Record<ToastTone, number> = {
 };
 
 /**
+ * Optional action button rendered inside a toast.
+ *
+ * Phase 10 introduced action support so the service-worker update
+ * prompt could offer an inline "Refresh" affordance without bolting
+ * a parallel notification system on top of toasts. Keep actions
+ * scoped to a single, primary affordance — toasts are not dialog
+ * boxes. The action button auto-dismisses the toast after `onPress`
+ * fires so callers never have to plumb the toast id manually.
+ */
+export type ToastAction = {
+  /** Visible button label, e.g. `"Refresh"`. Caller-supplied copy. */
+  label: string;
+  /**
+   * Called when the user taps the action. The toast dismisses
+   * immediately after this handler returns; throw / reject behavior
+   * is the caller's responsibility.
+   */
+  onPress: () => void;
+  /** Override the accessible name for screen readers. */
+  ariaLabel?: string;
+};
+
+/**
  * Single toast entry. `id` is assigned by `useToast()`. `title` and
  * `message` are caller-provided — the system never invents copy.
  */
@@ -44,6 +67,8 @@ export type Toast = {
   message: string;
   /** Duration in milliseconds. `0` keeps the toast until dismissed. */
   durationMs: number;
+  /** Optional inline action button. See `ToastAction`. */
+  action?: ToastAction;
 };
 
 export type ShowToastInput = {
@@ -53,6 +78,8 @@ export type ShowToastInput = {
   message: string;
   /** Override the default duration for this toast. */
   durationMs?: number;
+  /** Optional inline action button. See `ToastAction`. */
+  action?: ToastAction;
 };
 
 type ToastContextValue = {
@@ -141,6 +168,7 @@ export function ToastProvider({ children }: { children: ReactNode }): JSX.Elemen
       title: input.title,
       message: input.message,
       durationMs: input.durationMs ?? DEFAULT_DURATION_MS[tone],
+      action: input.action,
     };
     setToasts((current) => [...current, toast]);
     return id;
@@ -222,6 +250,23 @@ function ToastItem({ toast, onDismiss }: ToastItemProps): JSX.Element {
           {toast.message}
         </span>
       </div>
+      {toast.action ? (
+        <button
+          type="button"
+          onClick={() => {
+            toast.action?.onPress();
+            onDismiss(toast.id);
+          }}
+          className={cn(
+            'inline-flex h-8 shrink-0 items-center justify-center rounded-full px-3 text-label font-semibold',
+            'bg-motionly-primary text-motionly-bg-light hover:bg-motionly-primary/90',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-motionly-primary',
+          )}
+          aria-label={toast.action.ariaLabel ?? toast.action.label}
+        >
+          {toast.action.label}
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}

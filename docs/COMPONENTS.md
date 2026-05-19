@@ -331,6 +331,19 @@ Product code must:
    notification work is unrelated and is not implemented by this
    system.
 
+#### Toast actions (Phase 10 extension)
+
+`ShowToastInput` accepts an optional `action: { label, onPress, ariaLabel? }`
+so a toast can carry a single primary affordance — e.g. the Phase 10
+service-worker update prompt's "Refresh" button. When `action` is
+provided, the toast renders a primary-tone button between the message
+and the dismiss button; tapping it calls `onPress()` and then auto-
+dismisses the toast so the caller never has to plumb the toast id.
+Actions are intentionally minimal — toasts are notifications, not
+dialog boxes; do not stack multiple actions or invent richer toast
+types around them. The Phase 9 polite / assertive aria-live discipline
+is unchanged.
+
 ### Intentionally deferred after Phase 9
 
 - **Real active-workout assembly** (Phase 27). The components exist;
@@ -349,7 +362,29 @@ Product code must:
 
 ---
 
-## 9. Adding a New Primitive
+## 9. Phase 10 — Launch UI
+
+Phase 10 adds the Motionly launch experience under `src/components/launch/` and `src/launch/`. The full architectural map lives in [`ARCHITECTURE.md`](./ARCHITECTURE.md) §10f. The reusable UI pieces of that phase are documented here so primitive consumers know they exist.
+
+### Inventory
+
+| Component / hook               | Module                                            | Use for                                                                                                               |
+| ------------------------------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `LaunchScreen`                 | `@components/launch/LaunchScreen`                 | The React-side animated brand screen shown while `<LaunchGate>` resolves the launch decision. Decorative only.        |
+| `useServiceWorkerUpdatePrompt` | `@components/launch/useServiceWorkerUpdatePrompt` | Hook that listens for the `motionly:sw` `update-available` event and shows the Phase 9 toast with a `Refresh` action. |
+
+`@components/launch/index.ts` re-exports both. The launch orchestration (`<LaunchGate>`, `useLaunchDecision`, `getLaunchAuthState`, `LAUNCH_MIN_VISIBLE_MS`) lives in `@/launch` because it owns app-shell behavior rather than reusable UI.
+
+### Rules
+
+- **`LaunchScreen` is presentational.** It does not invent loading state, fake AI/ML claims, fake user copy, or progress percentages — wordmark + tagline only.
+- **`LaunchScreen` matches the inline HTML splash.** Both render on a `#0A0A0F` canvas so the swap from pre-React paint to React mount has no white flash on any system theme.
+- **Reuse `LaunchScreen` for the launch moment only.** Do not embed it on other screens to dress up loading states; the Phase 9 `SkeletonLoader`, `LinearProgress`, and `CircularProgress` cover real product loading affordances.
+- **`useServiceWorkerUpdatePrompt` reuses Phase 9 toasts.** It does not introduce a parallel notification system or call into Phase 44 push notifications. Toast action support (`ShowToastInput.action`) ships from `@components/feedback` and stays the canonical extension point.
+
+---
+
+## 10. Adding a New Primitive
 
 Before introducing a new primitive:
 
