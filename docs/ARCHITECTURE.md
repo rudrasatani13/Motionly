@@ -57,25 +57,25 @@ Higher layers compose lower ones. A page may call a service, a service may call 
 
 Each folder also has its own `README.md` with the in-folder rules. The summary below is the canonical map.
 
-| Folder              | Responsibility                                                                     | Introduced by                  |
-| ------------------- | ---------------------------------------------------------------------------------- | ------------------------------ |
-| `src/assets/`       | Static assets imported by application code (Vite-bundled).                         | Phase 5+ as needed             |
-| `src/components/`   | Shared, reusable UI primitives and composite components. Props in, JSX out.        | Phase 8 — Component primitives |
-| `src/pages/`        | Route-level screens. One file per top-level URL.                                   | Phase 10+                      |
-| `src/router/`       | React Router 6 config, guards, route params, navigation helpers.                   | Phase 6 — Routing              |
-| `src/hooks/`        | Custom React hooks shared across the app.                                          | As needed                      |
-| `src/store/`        | Global state (Zustand stores).                                                     | Phase 29 — State management    |
-| `src/services/`     | API clients (Supabase), analytics, subscriptions, persistence orchestration.       | Phase 31+                      |
-| `src/platform/`     | Thin adapters around browser-only APIs. The single chokepoint to the host.         | Phase 16+ (camera first)       |
-| `src/ml/`           | On-device ML: pose, joint angles, exercise state machines.                         | Phase 17+                      |
-| `src/ml/pose/`      | MediaPipe wrapper, landmark normalization, smoothing.                              | Phase 17 / 18                  |
-| `src/ml/exercises/` | Per-exercise state machines (rep counting, form cues).                             | Phase 22+                      |
-| `src/ml/angles/`    | Pure joint-angle math.                                                             | Phase 20                       |
-| `src/i18n/`         | i18n configuration and translation catalogs.                                       | Phase 42 / 43                  |
-| `src/theme/`        | Theme provider, theme hook, motion constants, and helpers for Tailwind theme mode. | Phase 5 / 46                   |
-| `src/utils/`        | Pure helpers with no React or DOM dependencies.                                    | As needed                      |
-| `src/types/`        | Cross-feature TypeScript domain types and ambient declarations.                    | As needed                      |
-| `src/workers/`      | Web Worker entry points (pose inference, heavy compute).                           | Phase 19                       |
+| Folder              | Responsibility                                                                        | Introduced by                  |
+| ------------------- | ------------------------------------------------------------------------------------- | ------------------------------ |
+| `src/assets/`       | Static assets imported by application code (Vite-bundled).                            | Phase 5+ as needed             |
+| `src/components/`   | Shared, reusable UI primitives and composite components. Props in, JSX out.           | Phase 8 — Component primitives |
+| `src/pages/`        | Route-level screens. One file per top-level URL.                                      | Phase 10+                      |
+| `src/router/`       | React Router 6 config, guards, route params, navigation helpers, and routing layouts. | Phase 6 — Routing              |
+| `src/hooks/`        | Custom React hooks shared across the app.                                             | As needed                      |
+| `src/store/`        | Global state (Zustand stores).                                                        | Phase 29 — State management    |
+| `src/services/`     | API clients (Supabase), analytics, subscriptions, persistence orchestration.          | Phase 31+                      |
+| `src/platform/`     | Thin adapters around browser-only APIs. The single chokepoint to the host.            | Phase 16+ (camera first)       |
+| `src/ml/`           | On-device ML: pose, joint angles, exercise state machines.                            | Phase 17+                      |
+| `src/ml/pose/`      | MediaPipe wrapper, landmark normalization, smoothing.                                 | Phase 17 / 18                  |
+| `src/ml/exercises/` | Per-exercise state machines (rep counting, form cues).                                | Phase 22+                      |
+| `src/ml/angles/`    | Pure joint-angle math.                                                                | Phase 20                       |
+| `src/i18n/`         | i18n configuration and translation catalogs.                                          | Phase 42 / 43                  |
+| `src/theme/`        | Theme provider, theme hook, motion constants, and helpers for Tailwind theme mode.    | Phase 5 / 46                   |
+| `src/utils/`        | Pure helpers with no React or DOM dependencies.                                       | As needed                      |
+| `src/types/`        | Cross-feature TypeScript domain types and ambient declarations.                       | As needed                      |
+| `src/workers/`      | Web Worker entry points (pose inference, heavy compute).                              | Phase 19                       |
 
 > Phase 4 created the folders and rules. Phase 5 populates only the theme foundation; product UI, routing, and feature logic remain deferred to their own phases.
 
@@ -196,9 +196,21 @@ Phase 5 now additionally delivers:
 - Motion duration/easing constants
 - A tokenized version of the honest app shell
 
+Phase 6 now additionally delivers:
+
+- React Router 6 wiring via `<BrowserRouter>` + a centralized route table (`src/router/routes.tsx`)
+- Route-level code splitting through `React.lazy()` + a minimal `RouteLoadingFallback`
+- Typed route path constants and URL builders (`src/router/routePaths.ts`)
+- `RouteIdParam` / `Workout*RouteParams` types (`src/router/routeTypes.ts`)
+- Structural-only `<RequireAuth>` guard (`src/router/RequireAuth.tsx`) — pass-through until Phase 32 ships real authentication
+- `AuthLayout` and `MainLayout` (`src/router/layouts/`)
+- `useNavigation()` typed navigation wrapper (`src/hooks/useNavigation.ts`)
+- Routing-only UI components in `src/components/routing/` (`RoutePlaceholder`, `BottomTabBar`, `ServiceWorkerStatusPill`)
+- Honest skeleton pages for every Phase 6 route under `src/pages/{auth,main,workout,progress,profile,modal,system}/`
+
 These phases **intentionally do not**:
 
-- Implement routing behavior (`src/router/`) — Phase 6
+- Implement product screens, fake data, or feature behavior on top of the Phase 6 routing skeleton. Phase 6 wires URLs and route guards only; real screens and real data still arrive in their own phases.
 - Implement components (`src/components/`) — Phase 8
 - Implement pages (`src/pages/`) — Phase 10+
 - Implement state management (`src/store/`) — Phase 29
@@ -244,6 +256,47 @@ When a later phase asks you to build a feature, walk this checklist:
 12. **No fake data.** Do not ship placeholder users, workouts, stats, AI scores, or claims about features that don't exist.
 
 Following this checklist keeps the architecture coherent across all 50+ phases.
+
+---
+
+## 10a. Routing Architecture (Phase 6)
+
+Motionly uses **React Router 6**. The routing source of truth is `src/router/routes.tsx` and everything related to URLs flows through that module.
+
+### Module map
+
+| File                                                 | Responsibility                                                                        |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `src/router/routePaths.ts`                           | Centralized route path constants and `buildWorkout*Path(id)` URL builders.            |
+| `src/router/routeTypes.ts`                           | `RouteIdParam` plus `WorkoutDetail/Setup/Active/Summary` param types for `useParams`. |
+| `src/router/routes.tsx`                              | Route table. Every page is `React.lazy()`-loaded and wrapped in `<Suspense>`.         |
+| `src/router/AppRouter.tsx`                           | `<BrowserRouter>` shell that renders the route table.                                 |
+| `src/router/RequireAuth.tsx`                         | Structural-only auth guard (see §10b).                                                |
+| `src/router/RouteLoadingFallback.tsx`                | Minimal Suspense fallback for lazy route chunks.                                      |
+| `src/router/layouts/AuthLayout.tsx`                  | Layout for auth + modal-style routes.                                                 |
+| `src/router/layouts/MainLayout.tsx`                  | Layout for main routes; renders the bottom tab bar.                                   |
+| `src/components/routing/RoutePlaceholder.tsx`        | Skeleton component every Phase 6 page renders.                                        |
+| `src/components/routing/BottomTabBar.tsx`            | NavLink-based mobile bottom tab bar.                                                  |
+| `src/components/routing/ServiceWorkerStatusPill.tsx` | PWA / service-worker status pill, shown by both layouts.                              |
+| `src/hooks/useNavigation.ts`                         | Typed wrapper around `useNavigate()`. Use this — do not inline route strings.         |
+
+### Rules
+
+- **No inline route strings.** Import from `ROUTE_PATHS` or call a `buildWorkout*Path(id)` helper. The same rule covers programmatic navigation — use `useNavigation()` instead of `useNavigate()` + literal URLs.
+- **Routes live in `src/router/`.** Page components live in `src/pages/`. The router knows about pages; pages must not know about the router beyond the `useParams` types in `routeTypes.ts`.
+- **Every route module is lazy.** All entries in `routes.tsx` use `React.lazy()`. Synchronous route imports defeat the bundle-splitting goal from the master plan.
+- **Layouts own chrome.** The bottom tab bar and PWA status pill render once at the layout level, not per page.
+- **No fake data in route skeletons.** Phase 6 placeholder pages must not invent users, workouts, stats, AI feedback, streaks, or subscription state.
+
+## 10b. RequireAuth: Structural Only Until Phase 32
+
+`<RequireAuth>` exists for layering, not security. Until Phase 32 ships real authentication (Supabase Auth, sessions, JWT, RLS), the guard:
+
+- Renders its children unconditionally so every protected URL can be exercised during Phase 6 validation.
+- Exposes `AUTH_GUARD_STATUS = 'auth-not-implemented-yet'` for honest UI affordances and tests.
+- Does **not** read fake users, fake tokens, or pretend-auth state from `localStorage`, cookies, or memory.
+
+When Phase 32 lands, the implementation inside `RequireAuth.tsx` swaps in real session reading and redirects via `useNavigation()`. Every consumer (page, layout) stays unchanged.
 
 ---
 

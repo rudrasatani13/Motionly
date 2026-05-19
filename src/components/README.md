@@ -19,4 +19,12 @@ Shared, reusable **UI** components that can be composed by any page.
 
 ## Phase status
 
-Reserved. The first real components are introduced in **Phase 8 — Core UI Component Library: Primitives**. Currently empty by design.
+The first real components are introduced in **Phase 8 — Core UI Component Library: Primitives**.
+
+**Narrow Phase 6 exception:** routing infrastructure components live in `src/components/routing/`:
+
+- `RoutePlaceholder.tsx` — shared skeleton component used by every Phase 6 route page.
+- `BottomTabBar.tsx` — mobile bottom navigation (NavLink-based) used by `MainLayout`.
+- `ServiceWorkerStatusPill.tsx` — honest PWA / service-worker status pill.
+
+These exist because Phase 6 needs route-skeleton UI. They are intentionally minimal and will be revisited (or replaced) once the Phase 8 primitive library lands. **Do not** anticipate that work by inventing `Button`, `Card`, `Input`, `Badge`, or other primitives in this folder before Phase 8.

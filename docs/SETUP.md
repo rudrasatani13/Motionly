@@ -375,6 +375,42 @@ Fonts are loaded in `src/main.tsx` with `@fontsource-variable/inter` and `@fonts
 
 `ThemeProvider` wraps the React root and persists the user's `light` / `dark` / `system` preference in `localStorage`. It applies Tailwind's class-based dark mode by toggling `dark` on `document.documentElement`; no settings screen or product theme toggle exists yet.
 
+## 16c. Routing Validation (Phase 6)
+
+Phase 6 introduced React Router 6 and a routing skeleton. Each route renders an honest placeholder that names the future phase that will build the real screen — no fake users, workouts, stats, or AI feedback.
+
+After `pnpm install`, validate the routing skeleton in both `pnpm dev` and `pnpm preview`:
+
+### Routes to open manually
+
+| URL                                              | Expectation                                               |
+| ------------------------------------------------ | --------------------------------------------------------- |
+| `/`                                              | Dashboard placeholder with bottom tab bar; "Home" active. |
+| `/workouts`                                      | Workout Library placeholder; "Workouts" active.           |
+| `/workouts/test-id`                              | Workout Detail placeholder; shows route param `test-id`.  |
+| `/workout/test-id/setup`                         | Camera Setup placeholder.                                 |
+| `/workout/test-id/active`                        | Active Workout placeholder.                               |
+| `/workout/test-id/summary`                       | Workout Summary placeholder.                              |
+| `/progress`                                      | Progress placeholder; "Progress" tab active.              |
+| `/profile`                                       | Profile placeholder; "Profile" tab active.                |
+| `/welcome`, `/login`, `/register`, `/onboarding` | Auth-layout placeholders; no bottom tab bar.              |
+| `/paywall`, `/permissions`                       | Modal-style placeholders; no bottom tab bar.              |
+| `/some-unknown-route`                            | 404 page with a "Back to Home" link.                      |
+
+`test-id` is an example URL string only — there is no fake workout data behind it.
+
+### Direct URL and browser controls
+
+- Refreshing the browser on any of the routes above should re-render the same route. (`pnpm dev` and `pnpm preview` both serve `index.html` for unknown paths, so SPA fallback works locally. Production deployments will need their own SPA-fallback config when that phase lands.)
+- Browser back / forward should walk through the navigation history correctly.
+- Android Chrome back button (real-device LAN testing) should match desktop behavior.
+- The PWA status pill remains visible on every route and reflects real service-worker status.
+- Light / dark theme behavior continues to work because `ThemeProvider` still wraps the router in `src/main.tsx`.
+
+### Bundle splitting
+
+After `pnpm build`, inspect `dist/assets/` — there should be one chunk per lazy-loaded page. Confirm in DevTools → Network that navigating to a previously unvisited route fetches its dedicated chunk.
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:
@@ -440,10 +476,14 @@ After install:
 │   └── audio/cues/             # reserved for voice cues (Phase 25)
 ├── src/
 │   ├── main.tsx                # React entry, SW registration
-│   ├── App.tsx                 # Minimal app shell
+│   ├── App.tsx                 # Renders AppRouter
 │   ├── index.css               # Tailwind directives + global base styles
 │   ├── hooks/useTheme.ts       # Public theme hook re-export
+│   ├── hooks/useNavigation.ts  # Typed navigation wrapper (Phase 6)
 │   ├── theme/                  # ThemeProvider, useTheme, motion constants
+│   ├── router/                 # Route table, guards, layouts (Phase 6)
+│   ├── pages/                  # Honest skeleton route pages (Phase 6)
+│   ├── components/routing/     # RoutePlaceholder, BottomTabBar, status pill
 │   ├── sw-register.ts          # Workbox SW lifecycle helper
 │   └── vite-env.d.ts           # Vite / PWA ambient types
 └── docs/SETUP.md               # This file
@@ -476,7 +516,6 @@ After install:
 
 Per `MOTIONLY_MASTER_PLAN.md`, the following are deferred to their own phases. Do **not** add any of these until their phase is active:
 
-- Routing (Phase 6)
 - Splash / launch experience (Phase 10)
 - Onboarding screens (Phases 11–12)
 - Dashboard, workout library, workout detail (Phases 13–15)
@@ -489,7 +528,7 @@ Per `MOTIONLY_MASTER_PLAN.md`, the following are deferred to their own phases. D
 - Web Push, notifications (Phase 44)
 - Settings UI and accessibility audit (Phases 45–47)
 
-The current `src/App.tsx` is **only** an honest app shell with the Motionly name, tagline, and a single status pill that reflects PWA / service-worker readiness. There is no fake user state, fake stats, fake AI claim, or placeholder workout content.
+> Phase 6 (Routing Architecture) is complete. Routes, route guards, layouts, and a bottom tab bar exist — but every route renders only an honest skeleton placeholder. There is still no fake user state, fake stats, fake AI claim, or placeholder workout content in the repo.
 
 ## 22. Phase 2 Success Checklist
 

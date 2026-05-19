@@ -72,6 +72,17 @@ If two rules conflict, **`ARCHITECTURE.md` wins on structure, this file wins on 
 
 ---
 
+## 6a. Routing (Phase 6)
+
+- **Pages live in `src/pages/`.** One file per top-level URL; subfolders by domain (`auth/`, `main/`, `workout/`, `progress/`, `profile/`, `modal/`, `system/`). The router never imports another page; pages never import the router.
+- **Route constants and types live in `src/router/`.** Import paths from `ROUTE_PATHS` in `src/router/routePaths.ts`. Use the `buildWorkout*Path(id)` helpers for URLs with dynamic segments. Never inline route strings in components, hooks, or services.
+- **Programmatic navigation uses `useNavigation()`** from `src/hooks/useNavigation.ts`. Do not import `useNavigate()` directly outside that hook — it bypasses the typed surface and makes future renames painful.
+- **`useParams` is typed.** Reach for the `Workout*RouteParams` aliases in `src/router/routeTypes.ts` instead of writing inline `Record<string, string>` shapes.
+- **Routes are lazy.** Every entry in `routes.tsx` uses `React.lazy()`. New routes follow the same pattern.
+- **`<RequireAuth>` is structural only.** Real auth lands in Phase 32; Phase 6 must not introduce fake users, fake sessions, or `localStorage`-pretend-auth on its behalf.
+
+---
+
 ## 7. Styling
 
 - **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.
@@ -149,19 +160,21 @@ The single allowed exception: **example values inside documentation** that are c
 
 ## 13. Quick Reference
 
-| If you want to…                   | Put it in…                                     |
-| --------------------------------- | ---------------------------------------------- |
-| Build a shared UI primitive       | `src/components/`                              |
-| Build a screen with a URL         | `src/pages/` (route wired in `src/router/`)    |
-| Wrap a browser API                | `src/platform/` (and only there)               |
-| Hit Supabase, Stripe, etc.        | `src/services/` (once those phases land)       |
-| Compute a joint angle             | `src/ml/angles/`                               |
-| Count a rep                       | `src/ml/exercises/<exercise>.ts`               |
-| Run inference off the main thread | `src/workers/` (importing from `src/ml/pose/`) |
-| Share React state across screens  | `src/store/` (Zustand, Phase 29+)              |
-| Reuse domain types in 2+ places   | `src/types/`                                   |
-| Add a translatable string         | `src/i18n/` (Phase 42+)                        |
-| Add a theme token                 | `src/theme/` (Phase 5+)                        |
-| Add a pure helper                 | `src/utils/`                                   |
+| If you want to…                   | Put it in…                                        |
+| --------------------------------- | ------------------------------------------------- |
+| Build a shared UI primitive       | `src/components/`                                 |
+| Build a screen with a URL         | `src/pages/` (route wired in `src/router/`)       |
+| Add or rename a route URL         | `src/router/routePaths.ts` (then `routes.tsx`)    |
+| Navigate programmatically         | `useNavigation()` in `src/hooks/useNavigation.ts` |
+| Wrap a browser API                | `src/platform/` (and only there)                  |
+| Hit Supabase, Stripe, etc.        | `src/services/` (once those phases land)          |
+| Compute a joint angle             | `src/ml/angles/`                                  |
+| Count a rep                       | `src/ml/exercises/<exercise>.ts`                  |
+| Run inference off the main thread | `src/workers/` (importing from `src/ml/pose/`)    |
+| Share React state across screens  | `src/store/` (Zustand, Phase 29+)                 |
+| Reuse domain types in 2+ places   | `src/types/`                                      |
+| Add a translatable string         | `src/i18n/` (Phase 42+)                           |
+| Add a theme token                 | `src/theme/` (Phase 5+)                           |
+| Add a pure helper                 | `src/utils/`                                      |
 
 When in doubt, re-read [`ARCHITECTURE.md`](./ARCHITECTURE.md) §3 (folder responsibilities) and §10 (how to add a new feature).

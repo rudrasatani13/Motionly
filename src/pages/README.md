@@ -18,4 +18,6 @@ Route-level screens. Each file maps to a URL configured in `src/router/`.
 
 ## Phase status
 
-Reserved. Pages are introduced from **Phase 10 — Splash / Launch Screen** onward. Currently empty by design.
+**Phase 6 — Routing Architecture Setup — added honest route skeleton pages here.** Each page renders a `RoutePlaceholder` that names the route and the future phase that will build the real screen. There is no fake user data, no fake workout cards, no fake AI feedback, and no fake stats anywhere in this folder.
+
+Real product screens are populated phase by phase starting at **Phase 10 — Splash / Launch Screen**.

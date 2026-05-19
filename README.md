@@ -13,6 +13,7 @@ Motionly is a PWA-first, privacy-first AI fitness coach foundation. The MVP road
 - **Phase 3 — Git Repository & Branching Strategy Setup:** complete.
 - **Phase 4 — Project Folder Structure & Architecture Standards:** complete.
 - **Phase 5 — Design System Foundation: Tokens & Theme:** complete.
+- **Phase 6 — Routing Architecture Setup:** complete.
 
 ### Honest scope note
 
@@ -27,7 +28,7 @@ This repository is an early-stage foundation. The following are **planned for la
 - Subscriptions, paywall, free-tier enforcement
 - Settings UI, accessibility audit, i18n
 
-The app shell currently shows the Motionly name, tagline, and a single status pill reflecting PWA / service-worker readiness — nothing more. There is no fake user state, fake stats, fake AI claim, or placeholder workout content in the repo.
+Phase 6 introduced React Router 6 and a routing skeleton: every route a future phase will need now has an honest placeholder page that names the route, the URL pattern, and the future phase that will build the real screen. There is **no fake user state, no fake workouts, no fake stats, no fake AI feedback, and no fake subscription state anywhere in the repo.** Protected routes are wrapped in a structural-only `<RequireAuth>` guard; real authentication is still deferred to Phase 32.
 
 ---
 
@@ -35,12 +36,13 @@ The app shell currently shows the Motionly name, tagline, and a single status pi
 
 - **[Vite](https://vitejs.dev/)** — dev server and bundler
 - **[React](https://react.dev/) 18** with **TypeScript** (strict mode)
+- **[React Router](https://reactrouter.com/) 6** — route table, route guards, layouts, route-level code splitting (Phase 6)
 - **PWA tooling** via [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) + [`workbox-window`](https://developer.chrome.com/docs/workbox/) (service worker, precache, runtime caching)
 - **[Tailwind CSS](https://tailwindcss.com/)** via PostCSS for Motionly theme tokens and utility styling
 - **Fontsource** packages for Inter Variable and Noto Sans Devanagari font loading
 - **[pnpm](https://pnpm.io/)** as the package manager (Node 20+)
 
-Future stack additions (React Router, Zustand, Supabase, MediaPipe, etc.) are introduced in their own phases per `MOTIONLY_MASTER_PLAN.md` and are not present yet.
+Future stack additions (Zustand, Supabase, MediaPipe, etc.) are introduced in their own phases per `MOTIONLY_MASTER_PLAN.md` and are not present yet.
 
 ---
 
@@ -114,7 +116,7 @@ Phase 4 added the scalable folder structure and standards that everything else b
 
 Lint and format are wired up via ESLint + Prettier and enforced by a Husky pre-commit hook (`pnpm format:check && pnpm lint && pnpm typecheck`). Run `pnpm lint` / `pnpm format` manually whenever you want.
 
-The `src/` folders created in Phase 4 are populated only when their phase arrives. As of Phase 5, `src/theme/` contains `ThemeProvider`, `useTheme`, and motion constants, and `src/hooks/useTheme.ts` re-exports the public theme hook. Product screens, routing, reusable component primitives, and data-backed features are still deferred.
+The `src/` folders created in Phase 4 are populated only when their phase arrives. As of Phase 6, `src/theme/` holds the design-system foundation, `src/router/` holds the routing skeleton (route table, guards, layouts, lazy loading), `src/pages/` holds honest skeleton route pages, and `src/hooks/` adds a typed `useNavigation()` wrapper. Reusable component primitives, data-backed features, real authentication, and product screens are still deferred to their later phases.
 
 ---
 
