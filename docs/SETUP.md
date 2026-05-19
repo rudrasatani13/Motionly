@@ -28,13 +28,13 @@ If a tutorial tells you to install any of those for Motionly, ignore it. Motionl
 
 ## 2. Required Tooling
 
-| Tool | Purpose | Notes |
-|---|---|---|
-| Node.js LTS **v20+** | JavaScript runtime for Vite, scripts, tooling | Use the version pinned in `.nvmrc` |
-| pnpm | Fast, disk-efficient package manager | Required — `npm` and `yarn` are not used in this project |
-| VS Code | Editor with first-class TS/React/Tailwind support | Any editor works, but examples assume VS Code |
-| Chrome or Edge (latest) | Primary development browser, DevTools, Lighthouse | Used for performance profiling and remote device debugging |
-| A physical Android phone | Real-device testing over LAN | Required — no emulator is used |
+| Tool                     | Purpose                                           | Notes                                                      |
+| ------------------------ | ------------------------------------------------- | ---------------------------------------------------------- |
+| Node.js LTS **v20+**     | JavaScript runtime for Vite, scripts, tooling     | Use the version pinned in `.nvmrc`                         |
+| pnpm                     | Fast, disk-efficient package manager              | Required — `npm` and `yarn` are not used in this project   |
+| VS Code                  | Editor with first-class TS/React/Tailwind support | Any editor works, but examples assume VS Code              |
+| Chrome or Edge (latest)  | Primary development browser, DevTools, Lighthouse | Used for performance profiling and remote device debugging |
+| A physical Android phone | Real-device testing over LAN                      | Required — no emulator is used                             |
 
 Total expected tooling disk footprint: under 3 GB.
 
@@ -337,6 +337,36 @@ pnpm typecheck
 
 Runs `tsc -b --noEmit` against both `tsconfig.app.json` (app source) and `tsconfig.node.json` (Vite config). Use it as a fast pre-commit check — `pnpm build` runs the same checks plus the actual bundle.
 
+## 16a. Lint, Format, Pre-commit (Phase 4)
+
+Phase 4 wired up ESLint + Prettier and a Husky pre-commit hook.
+
+```bash
+pnpm lint           # ESLint over src/ + tooling files
+pnpm lint:fix       # ESLint with safe --fix
+pnpm format         # Prettier write across the repo
+pnpm format:check   # Prettier check only (no writes)
+```
+
+The pre-commit hook at `.husky/pre-commit` runs three steps and blocks the commit if any fail:
+
+1. `pnpm format:check`
+2. `pnpm lint`
+3. `pnpm typecheck`
+
+`pnpm build` is **not** run on every commit (too slow). Run it manually before pushing:
+
+```bash
+pnpm build
+```
+
+If you must bypass the hook (emergency commits only), `git commit --no-verify` works, but treat that as a code-smell — the next commit should restore green.
+
+The full repo-wide rule set is documented in:
+
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — folder layout, layering, platform-adapter pattern, privacy architecture.
+- [`CODING_STANDARDS.md`](./CODING_STANDARDS.md) — TypeScript, React, hook, service, ML, styling, naming, and import rules.
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:
@@ -409,24 +439,26 @@ After install:
 
 `vite-tsconfig-paths` is wired up so the following aliases resolve in both Vite and TypeScript:
 
-| Alias              | Resolves to            |
-|--------------------|------------------------|
-| `@/`               | `src/`                 |
-| `@components/`     | `src/components/`      |
-| `@pages/`          | `src/pages/`           |
-| `@hooks/`          | `src/hooks/`           |
-| `@services/`       | `src/services/`        |
-| `@platform/`       | `src/platform/`        |
-| `@ml/`             | `src/ml/`              |
-| `@store/`          | `src/store/`           |
-| `@utils/`          | `src/utils/`           |
-| `@types/`          | `src/types/`           |
-| `@assets/`         | `src/assets/`          |
-| `@theme/`          | `src/theme/`           |
-| `@router/`         | `src/router/`          |
-| `@i18n/`           | `src/i18n/`            |
+| Alias          | Resolves to       |
+| -------------- | ----------------- |
+| `@/`           | `src/`            |
+| `@components/` | `src/components/` |
+| `@pages/`      | `src/pages/`      |
+| `@hooks/`      | `src/hooks/`      |
+| `@services/`   | `src/services/`   |
+| `@platform/`   | `src/platform/`   |
+| `@ml/`         | `src/ml/`         |
+| `@store/`      | `src/store/`      |
+| `@utils/`      | `src/utils/`      |
+| `@types/`      | `src/types/`      |
+| `@assets/`     | `src/assets/`     |
+| `@theme/`      | `src/theme/`      |
+| `@router/`     | `src/router/`     |
+| `@i18n/`       | `src/i18n/`       |
 
 Only the directories required for Phase 2 (`@/`) actually exist yet — the rest are reserved for later phases and will be created when those phases need them. There is no need to pre-create empty directories.
+
+> **Phase 4 update:** the rest of the `src/` skeleton (`components/`, `pages/`, `hooks/`, `store/`, `services/`, `platform/`, `ml/{pose,exercises,angles}`, `router/`, `theme/`, `i18n/`, `utils/`, `types/`, `workers/`, `assets/`) now exists as **empty folders with a `README.md` in each** describing their purpose and which future phase populates them. See [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) for the full map.
 
 ## 21. What Phase 2 Intentionally Does NOT Include
 

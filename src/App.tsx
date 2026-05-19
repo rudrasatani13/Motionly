@@ -39,9 +39,7 @@ function App(): JSX.Element {
       <footer className="app-shell__footer">
         <span className="app-shell__status" role="status" aria-live="polite">
           <span
-            className={
-              'app-shell__status-dot' + (isLive ? '' : ' app-shell__status-dot--idle')
-            }
+            className={'app-shell__status-dot' + (isLive ? '' : ' app-shell__status-dot--idle')}
             aria-hidden="true"
           />
           {statusLabel(swStatus)}

@@ -29,6 +29,8 @@
 <!-- What you actually ran and saw. Be specific. -->
 
 - [ ] `pnpm install` succeeds
+- [ ] `pnpm format:check` passes
+- [ ] `pnpm lint` passes
 - [ ] `pnpm typecheck` passes
 - [ ] `pnpm build` succeeds
 - [ ] Manual smoke test in browser (describe below if UI changed)
@@ -55,10 +57,14 @@ Notes:
 
 - [ ] I read the relevant phase in `MOTIONLY_MASTER_PLAN.md`
 - [ ] I kept this change within the current phase scope
+- [ ] I followed the rules in `docs/ARCHITECTURE.md` (folder layout, platform-adapter pattern, layering)
+- [ ] I followed the rules in `docs/CODING_STANDARDS.md` (TypeScript, React, naming, imports)
 - [ ] I did not add fake/demo data
 - [ ] I did not add fake users, fake workouts, fake stats, or fake analytics
 - [ ] I did not add unfinished product claims
 - [ ] I did not introduce raw video upload or privacy-risky behavior
+- [ ] I ran `pnpm format:check`
+- [ ] I ran `pnpm lint`
 - [ ] I ran `pnpm typecheck`
 - [ ] I ran `pnpm build`
-- [ ] I updated docs (`README.md`, `docs/SETUP.md`, `docs/REPOSITORY_STANDARDS.md`, etc.) if behavior or setup changed
+- [ ] I updated docs (`README.md`, `docs/SETUP.md`, `docs/ARCHITECTURE.md`, `docs/CODING_STANDARDS.md`, `docs/REPOSITORY_STANDARDS.md`, etc.) if behavior or setup changed

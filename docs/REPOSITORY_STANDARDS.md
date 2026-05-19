@@ -27,12 +27,12 @@ When any of the following becomes true — a second active contributor, a deploy
 
 ### Branches
 
-| Branch | Purpose | Auto-deploy target (when configured) |
-|---|---|---|
-| `main` | Production releases | motionly.app (future) |
-| `develop` | Integration / staging | staging.motionly.app (future) |
-| `feature/phase-XX-description` | Phase-scoped feature work | — |
-| `fix/issue-description` | Bug fixes | — |
+| Branch                         | Purpose                   | Auto-deploy target (when configured) |
+| ------------------------------ | ------------------------- | ------------------------------------ |
+| `main`                         | Production releases       | motionly.app (future)                |
+| `develop`                      | Integration / staging     | staging.motionly.app (future)        |
+| `feature/phase-XX-description` | Phase-scoped feature work | —                                    |
+| `fix/issue-description`        | Bug fixes                 | —                                    |
 
 ### Rules
 
@@ -58,15 +58,15 @@ All commits follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ### Allowed types
 
-| Type | When to use |
-|---|---|
-| `feat` | A user-visible feature or capability |
-| `fix` | A bug fix |
-| `docs` | Documentation-only changes |
-| `style` | Whitespace, formatting, missing semicolons — no logic change |
-| `refactor` | Code change that neither fixes a bug nor adds a feature |
-| `test` | Adding or correcting tests |
-| `chore` | Tooling, config, dependency, repo hygiene |
+| Type       | When to use                                                  |
+| ---------- | ------------------------------------------------------------ |
+| `feat`     | A user-visible feature or capability                         |
+| `fix`      | A bug fix                                                    |
+| `docs`     | Documentation-only changes                                   |
+| `style`    | Whitespace, formatting, missing semicolons — no logic change |
+| `refactor` | Code change that neither fixes a bug nor adds a feature      |
+| `test`     | Adding or correcting tests                                   |
+| `chore`    | Tooling, config, dependency, repo hygiene                    |
 
 ### Examples of good Motionly commit messages
 

@@ -11,6 +11,7 @@ Motionly is a PWA-first, privacy-first AI fitness coach foundation. The MVP road
 - **Phase 1 — Development Environment Setup:** complete.
 - **Phase 2 — PWA Foundation (Vite + React + TypeScript):** complete.
 - **Phase 3 — Git Repository & Branching Strategy Setup:** complete.
+- **Phase 4 — Project Folder Structure & Architecture Standards:** complete.
 
 ### Honest scope note
 
@@ -56,14 +57,18 @@ pnpm dev          # http://localhost:5173 + LAN URL
 
 ## Common Commands
 
-| Command | What it does |
-|---|---|
-| `pnpm install` | Install dependencies (uses `pnpm-workspace.yaml`) |
-| `pnpm dev` | Vite dev server bound to LAN (`--host`) so a phone can reach it |
-| `pnpm dev:local` | Vite dev server bound to `localhost` only |
-| `pnpm typecheck` | Strict TypeScript check across app + Vite config |
-| `pnpm build` | `tsc -b` then `vite build` → `dist/` with PWA artifacts |
-| `pnpm preview` | Serve the production build from `dist/` (http://localhost:4173) |
+| Command             | What it does                                                                |
+| ------------------- | --------------------------------------------------------------------------- |
+| `pnpm install`      | Install dependencies (uses `pnpm-workspace.yaml`)                           |
+| `pnpm dev`          | Vite dev server bound to LAN (`--host`) so a phone can reach it             |
+| `pnpm dev:local`    | Vite dev server bound to `localhost` only                                   |
+| `pnpm lint`         | ESLint over `src/` + tooling files (TypeScript, React, hooks, a11y, format) |
+| `pnpm lint:fix`     | ESLint with `--fix` (auto-applies safe fixes)                               |
+| `pnpm format`       | Prettier write across the repo                                              |
+| `pnpm format:check` | Prettier check only (no writes) — used by the pre-commit hook               |
+| `pnpm typecheck`    | Strict TypeScript check across app + Vite config                            |
+| `pnpm build`        | `tsc -b` then `vite build` → `dist/` with PWA artifacts                     |
+| `pnpm preview`      | Serve the production build from `dist/` (http://localhost:4173)             |
 
 ---
 
@@ -84,7 +89,7 @@ Then open http://localhost:4173/ and check DevTools → Application → Manifest
 This repository follows lightweight conventions documented in **[`docs/REPOSITORY_STANDARDS.md`](./docs/REPOSITORY_STANDARDS.md)**:
 
 - **Conventional Commits** (`feat:`, `fix:`, `docs:`, `chore:`, …)
-- **Current workflow:** solo developer working directly on `main`. Commits are kept small, scoped to one phase, and checked locally with `pnpm typecheck` + `pnpm build` before pushing.
+- **Current workflow:** solo developer working directly on `main`. Commits are kept small, scoped to one phase, and checked locally with `pnpm format:check`, `pnpm lint`, `pnpm typecheck` (a Husky pre-commit hook enforces these), and `pnpm build` before pushing.
 - **Future workflow** (from the master plan, adopted when collaboration or staging deployment requires it):
   - `main` — production releases
   - `develop` — integration / staging
@@ -93,6 +98,19 @@ This repository follows lightweight conventions documented in **[`docs/REPOSITOR
   - PR reviews + branch protection on `main` once CI exists
 
 A practical PR template lives at [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md) and will activate once contributors start opening pull requests on GitHub.
+
+---
+
+## Architecture & Coding Standards
+
+Phase 4 added the scalable folder structure and standards that everything else builds on:
+
+- **[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)** — folder layout, layering rules, the platform-adapter pattern, privacy architecture, and a checklist for adding new features.
+- **[`docs/CODING_STANDARDS.md`](./docs/CODING_STANDARDS.md)** — TypeScript, React, hook, service, ML, styling, naming, and import rules.
+
+Lint and format are wired up via ESLint + Prettier and enforced by a Husky pre-commit hook (`pnpm format:check && pnpm lint && pnpm typecheck`). Run `pnpm lint` / `pnpm format` manually whenever you want.
+
+The `src/` folders created in Phase 4 (`components/`, `pages/`, `hooks/`, `store/`, `services/`, `platform/`, `ml/`, `router/`, `theme/`, `i18n/`, `utils/`, `types/`, `workers/`, `assets/`) are intentionally empty apart from a `README.md` in each. They are populated by their respective phases — see the master plan.
 
 ---
 

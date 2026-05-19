@@ -1,0 +1,27 @@
+# Build output
+dist
+dev-dist
+build
+coverage
+
+# Dependencies
+node_modules
+.pnpm-store
+
+# Lockfiles (managed by the package manager)
+pnpm-lock.yaml
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Large/binary assets that don't benefit from formatting
+public/Motionly.png
+public/favicon.svg
+public/favicon.ico
+public/favicon-96x96.png
+public/apple-touch-icon.png
+public/web-app-manifest-192x192.png
+public/web-app-manifest-512x512.png
+
+# The master plan is hand-authored and intentionally not reflowed by Prettier.
+MOTIONLY_MASTER_PLAN.md

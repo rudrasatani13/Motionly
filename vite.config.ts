@@ -93,8 +93,7 @@ export default defineConfig({
           {
             // Web fonts (Google / self-hosted .woff2)
             urlPattern: ({ request, url }) =>
-              request.destination === 'font' ||
-              /\.(?:woff2?|ttf|otf)$/i.test(url.pathname),
+              request.destination === 'font' || /\.(?:woff2?|ttf|otf)$/i.test(url.pathname),
             handler: 'CacheFirst',
             options: {
               cacheName: 'motionly-fonts',

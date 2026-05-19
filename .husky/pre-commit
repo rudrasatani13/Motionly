@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+# Motionly pre-commit hook
+#
+# Runs:
+#   1. Prettier format check  (pnpm format:check)
+#   2. ESLint                 (pnpm lint)
+#   3. TypeScript typecheck   (pnpm typecheck)
+#
+# `pnpm build` is intentionally NOT run here — it is too slow to block every
+# commit on. Run it manually before pushing (see docs/SETUP.md).
+#
+# To bypass the hook (rare — for emergency commits only) use `git commit --no-verify`.
+
+set -e
+
+echo "▸ Motionly pre-commit: format:check"
+pnpm format:check
+
+echo "▸ Motionly pre-commit: lint"
+pnpm lint
+
+echo "▸ Motionly pre-commit: typecheck"
+pnpm typecheck

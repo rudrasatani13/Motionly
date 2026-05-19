@@ -1,0 +1,245 @@
+# Motionly — Architecture
+
+This document defines the folder structure, module boundaries, and architectural rules that all Motionly code must follow. It corresponds to **Phase 4 — Project Folder Structure & Architecture Standards** of [`MOTIONLY_MASTER_PLAN.md`](../MOTIONLY_MASTER_PLAN.md) and is the source a new developer should read first.
+
+It is paired with [`CODING_STANDARDS.md`](./CODING_STANDARDS.md) (TypeScript, React, naming, lint/format rules).
+
+---
+
+## 1. PWA-First Philosophy
+
+Motionly is a **Progressive Web App** delivered through Vite + React + TypeScript. Everything ships as web technology and runs in the browser by default. The native shell (Capacitor) is a deferred wrapping decision — not a parallel codebase. Architectural rules are designed so that the future native path requires **swapping platform adapters only**, never rewriting features.
+
+Key consequences that shape every later phase:
+
+- **Single codebase.** No iOS-only or Android-only directories. Differences live behind the platform-adapter pattern (see §6).
+- **Offline by default.** The service worker (configured in `vite.config.ts`) precaches the app shell; runtime caching is set up for models, audio cues, fonts, and images.
+- **On-device privacy.** Raw video, camera frames, and pose landmarks stay on the device. The architecture treats anything that _could_ exfiltrate them as a bug.
+
+---
+
+## 2. Top-Level Layering
+
+The app is organized into discrete layers. Each layer may depend on the layers below it, never on the layers above.
+
+```
+                ┌─────────────────────────────────────┐
+   UI layer    │  src/pages/        src/components/   │
+                └─────────────────────────────────────┘
+                                │
+                ┌───────────────┴─────────────────────┐
+   React glue  │  src/hooks/        src/store/        │
+                └─────────────────────────────────────┘
+                                │
+                ┌───────────────┴─────────────────────┐
+   Domain      │  src/services/     src/ml/           │
+                │                    src/workers/      │
+                └─────────────────────────────────────┘
+                                │
+                ┌───────────────┴─────────────────────┐
+   Platform    │  src/platform/                       │  ← only layer that
+                │  (camera, TTS, storage, push,        │     touches browser
+                │   haptics, wake lock, …)             │     globals
+                └─────────────────────────────────────┘
+                                │
+                ┌───────────────┴─────────────────────┐
+   Foundation  │  src/utils/   src/types/             │
+                │  src/i18n/    src/theme/             │
+                │  src/router/  src/assets/            │
+                └─────────────────────────────────────┘
+```
+
+Higher layers compose lower ones. A page may call a service, a service may call a platform adapter — but a platform adapter never imports a component.
+
+---
+
+## 3. `src/` Folder Responsibilities
+
+Each folder also has its own `README.md` with the in-folder rules. The summary below is the canonical map.
+
+| Folder              | Responsibility                                                               | Introduced by                  |
+| ------------------- | ---------------------------------------------------------------------------- | ------------------------------ |
+| `src/assets/`       | Static assets imported by application code (Vite-bundled).                   | Phase 5+ as needed             |
+| `src/components/`   | Shared, reusable UI primitives and composite components. Props in, JSX out.  | Phase 8 — Component primitives |
+| `src/pages/`        | Route-level screens. One file per top-level URL.                             | Phase 10+                      |
+| `src/router/`       | React Router 6 config, guards, route params, navigation helpers.             | Phase 6 — Routing              |
+| `src/hooks/`        | Custom React hooks shared across the app.                                    | As needed                      |
+| `src/store/`        | Global state (Zustand stores).                                               | Phase 29 — State management    |
+| `src/services/`     | API clients (Supabase), analytics, subscriptions, persistence orchestration. | Phase 31+                      |
+| `src/platform/`     | Thin adapters around browser-only APIs. The single chokepoint to the host.   | Phase 16+ (camera first)       |
+| `src/ml/`           | On-device ML: pose, joint angles, exercise state machines.                   | Phase 17+                      |
+| `src/ml/pose/`      | MediaPipe wrapper, landmark normalization, smoothing.                        | Phase 17 / 18                  |
+| `src/ml/exercises/` | Per-exercise state machines (rep counting, form cues).                       | Phase 22+                      |
+| `src/ml/angles/`    | Pure joint-angle math.                                                       | Phase 20                       |
+| `src/i18n/`         | i18n configuration and translation catalogs.                                 | Phase 42 / 43                  |
+| `src/theme/`        | Tailwind tokens, `ThemeProvider`, motion constants.                          | Phase 5 / 46                   |
+| `src/utils/`        | Pure helpers with no React or DOM dependencies.                              | As needed                      |
+| `src/types/`        | Cross-feature TypeScript domain types and ambient declarations.              | As needed                      |
+| `src/workers/`      | Web Worker entry points (pose inference, heavy compute).                     | Phase 19                       |
+
+> **Phase 4 (this phase) creates the folders and rules. It does not populate them with features.**
+
+---
+
+## 4. `public/` Folder Responsibilities
+
+Files in `public/` are reachable by **URL** in the browser. The build copies them as-is to `dist/`.
+
+| Path                                                     | Purpose                                                                                    |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `public/favicon.svg`, `favicon.ico`, `favicon-96x96.png` | Tab icons.                                                                                 |
+| `public/apple-touch-icon.png`                            | iOS home-screen icon (180×180).                                                            |
+| `public/web-app-manifest-192x192.png` / `512x512.png`    | Installable PWA icons (`any` and `maskable`).                                              |
+| `public/Motionly.png`                                    | 1024×1024 brand source. Excluded from precache via `workbox.globIgnores`.                  |
+| `public/models/`                                         | **Reserved (Phase 17).** MediaPipe model files. Cached `CacheFirst` by the service worker. |
+| `public/audio/cues/`                                     | **Reserved (Phase 25).** Voice cue audio. Cached `CacheFirst` by the service worker.       |
+
+Anything that needs to be imported by JS/TS at build time belongs in `src/assets/` instead.
+
+---
+
+## 5. TypeScript Path Aliases
+
+Configured in `tsconfig.app.json` and resolved in Vite by `vite-tsconfig-paths`.
+
+| Alias          | Resolves to       |
+| -------------- | ----------------- |
+| `@/`           | `src/`            |
+| `@components/` | `src/components/` |
+| `@pages/`      | `src/pages/`      |
+| `@hooks/`      | `src/hooks/`      |
+| `@services/`   | `src/services/`   |
+| `@platform/`   | `src/platform/`   |
+| `@ml/`         | `src/ml/`         |
+| `@store/`      | `src/store/`      |
+| `@utils/`      | `src/utils/`      |
+| `@types/`      | `src/types/`      |
+| `@assets/`     | `src/assets/`     |
+| `@theme/`      | `src/theme/`      |
+| `@router/`     | `src/router/`     |
+| `@i18n/`       | `src/i18n/`       |
+
+**Import rule:** prefer aliases over deep relative paths (`../../../`). Use plain relative imports only within a single folder or for closely sibling files.
+
+---
+
+## 6. Platform Adapter Pattern
+
+> **All browser-only APIs MUST go through `src/platform/`.**
+
+This is the single most important architectural rule in the repo. It is what keeps the future native (Capacitor) path trivial and prevents browser-only assumptions from leaking into product code.
+
+### How it works
+
+For each browser capability we need, define:
+
+1. A **TypeScript interface** that describes the capability in product terms (not browser terms).
+2. A **web implementation** of that interface using browser APIs.
+
+Feature code (pages, components, hooks, services, ML modules) calls the interface — never `navigator.*`, `window.*`, `document.*`, or any browser global directly.
+
+When Capacitor wrapping is later approved, only the implementation file is swapped; every consumer stays untouched.
+
+### Adapters we will need (in phase order)
+
+| Adapter       | Web impl                                                    | Future Capacitor impl                                                    |
+| ------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Camera        | `navigator.mediaDevices.getUserMedia`                       | `@capacitor-community/camera-preview` or equivalent                      |
+| TTS / Voice   | `speechSynthesis` + `HTMLAudioElement` for prerecorded cues | `@capacitor-community/text-to-speech` + native audio                     |
+| Storage       | IndexedDB (via a wrapper like `idb-keyval`)                 | `@capacitor/preferences` for small KV; native filesystem for large blobs |
+| Notifications | Web Push + Notifications API                                | `@capacitor/push-notifications` + `@capacitor/local-notifications`       |
+| Haptics       | `navigator.vibrate`                                         | `@capacitor/haptics`                                                     |
+| Wake Lock     | `navigator.wakeLock`                                        | `@capacitor-community/keep-awake`                                        |
+
+None of these exist yet. Each lands in its own phase.
+
+### Rule of thumb
+
+If you find yourself reaching for `navigator.*`, `window.*`, `document.*`, `localStorage`, or `indexedDB` from outside `src/platform/`: stop. Add (or extend) an adapter first.
+
+---
+
+## 7. Data Privacy Architecture
+
+The product's privacy story constrains every layer:
+
+1. **No raw video leaves the device.** Camera frames are read into a `<video>` element, optionally rendered to a `<canvas>`, and fed into the pose worker. They are never uploaded, never logged, never stored, never sent to a third party.
+2. **Pose/camera work is on-device.** All inference (`src/ml/`) runs in the browser via MediaPipe + Web Workers. Frames are not sent to a server for inference.
+3. **Cloud sync uses aggregate metrics only.** When backend sync ships (Phase 31+), payloads contain derived numbers — rep counts, form scores, durations, anonymous opt-in analytics. Never landmarks, never frames.
+4. **Telemetry is opt-in.** Analytics (Phase 39) ships disabled by default and asks for consent.
+5. **The platform-adapter layer is the privacy boundary.** Camera, microphone, and storage access flow through `src/platform/` — that is where audit, capability gating, and revocation logic live.
+
+If a future change appears to violate any of these, it is a bug, not a trade-off.
+
+---
+
+## 8. Phase Boundaries
+
+This phase (**Phase 4**) delivers:
+
+- The folder skeleton under `src/`
+- Each folder's `README.md` describing its purpose and constraints
+- TypeScript path aliases (already configured by Phase 2, audited here)
+- This architecture document and the companion coding standards
+- ESLint + Prettier + Husky tooling so future code is consistent
+
+This phase **intentionally does not**:
+
+- Implement routing behavior (`src/router/`) — Phase 6
+- Implement the design system (`src/theme/`, Tailwind) — Phase 5
+- Implement components (`src/components/`) — Phase 8
+- Implement pages (`src/pages/`) — Phase 10+
+- Implement state management (`src/store/`) — Phase 29
+- Implement camera, TTS, storage, or notification adapters (`src/platform/`) — Phase 16+
+- Implement pose detection or exercise engines (`src/ml/`, `src/workers/`) — Phase 17+
+- Implement Supabase, auth, payments, analytics, notifications, i18n language packs, or design tokens — their respective phases
+
+Each folder's `README.md` repeats this rule in the context of that folder.
+
+---
+
+## 9. Import Rules
+
+| Rule                                                                                                | Why                                                                      |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Prefer path aliases (`@components/Button`) over deep relative paths (`../../../components/Button`). | Aliases survive file moves and are searchable.                           |
+| Shared UI lives in `src/components/`, never in `src/pages/`.                                        | Pages must be free to import shared UI without each importing the other. |
+| Business / service logic lives in `src/services/`, never in components.                             | Components can be tested without a network or a database.                |
+| Browser-only APIs are used **only** from `src/platform/`.                                           | This is the platform-adapter rule (§6).                                  |
+| ML logic lives in `src/ml/`; worker shells live in `src/workers/`.                                  | Inference must be testable headless and runnable off the main thread.    |
+| Utilities (`src/utils/`) and types (`src/types/`) are leaf modules.                                 | They must not import from `components/`, `pages/`, or `store/`.          |
+| Avoid circular dependencies.                                                                        | If two modules need each other, extract the shared piece.                |
+
+ESLint enforces what is machine-checkable (unused imports, unsafe React patterns); the rest is enforced in code review.
+
+---
+
+## 10. How to Add a New Feature (Checklist)
+
+When a later phase asks you to build a feature, walk this checklist:
+
+1. **Read the phase** in `MOTIONLY_MASTER_PLAN.md`. Confirm the feature belongs to the current phase.
+2. **Find or create the page** in `src/pages/`. Pages own the URL and the top-level composition.
+3. **Pull shared UI** from `src/components/`. Build new primitives there only if they are reusable; one-off page UI stays with the page.
+4. **Put business / data logic** in `src/services/`. Pages and components call services, not the network.
+5. **Put browser-API access** behind an adapter in `src/platform/`. Never call `navigator`, `window`, or `document` from anywhere else.
+6. **Put ML logic** in `src/ml/` (pure, testable) and run it inside a worker from `src/workers/` if it is heavy.
+7. **Define domain types** in `src/types/` when more than one module uses them; keep component prop types local.
+8. **Add hooks** in `src/hooks/` when React state needs to be shared across components.
+9. **Add stores** in `src/store/` (Zustand) for cross-page state once Phase 29 has introduced state management.
+10. **Update docs.** If the feature changes setup, scripts, or architecture, update `docs/SETUP.md`, this file, or `docs/CODING_STANDARDS.md` accordingly.
+11. **Run** `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, and `pnpm build` before committing.
+12. **No fake data.** Do not ship placeholder users, workouts, stats, AI scores, or claims about features that don't exist.
+
+Following this checklist keeps the architecture coherent across all 50+ phases.
+
+---
+
+## 11. Things This Document Does Not Cover
+
+- **Coding style, naming, lint rules:** see [`CODING_STANDARDS.md`](./CODING_STANDARDS.md).
+- **Setup, dev server, build, preview, real-phone LAN testing:** see [`SETUP.md`](./SETUP.md).
+- **Repository hygiene, commit conventions, branching:** see [`REPOSITORY_STANDARDS.md`](./REPOSITORY_STANDARDS.md).
+- **Phase scope and ordering:** see [`MOTIONLY_MASTER_PLAN.md`](../MOTIONLY_MASTER_PLAN.md).
+
+Keep this document the **structural** source of truth. If the structure changes, update this file in the same commit.
