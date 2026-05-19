@@ -15,6 +15,7 @@ Motionly is a PWA-first, privacy-first AI fitness coach foundation. The MVP road
 - **Phase 5 — Design System Foundation: Tokens & Theme:** complete.
 - **Phase 6 — Routing Architecture Setup:** complete.
 - **Phase 7 — Wireframing & User Flow Documentation:** complete (docs only; no app screens were built).
+- **Phase 8 — Core UI Component Library (Primitives):** complete. Reusable primitives (`Button`, `Input`, `Text`/`Heading`, `Card`, `Divider`, `Spacer`, `Row`, `Column`, `Badge`, `Tag`, `Chip`, `Icon`, `Avatar`) live under `src/components/primitives/` and are documented in [`docs/COMPONENTS.md`](./docs/COMPONENTS.md). No product screens, data-backed UI, or fake stats were introduced.
 
 ### Honest scope note
 
@@ -33,6 +34,8 @@ Phase 6 introduced React Router 6 and a routing skeleton: every route a future p
 
 Phase 7 added UX planning documentation only — wireframes for every planned screen, user-flow narratives, and Mermaid diagrams of the five key journeys. Wireframes live in [`docs/wireframes/`](./docs/wireframes/) and user-flow narratives in [`docs/USER_FLOWS.md`](./docs/USER_FLOWS.md). **No runtime app code changed in Phase 7.** Sample names and numbers in the wireframes are clearly labeled illustrative documentation and must not be pasted into product code as if real workouts, users, or stats existed.
 
+Phase 8 added Motionly's primitive UI library under `src/components/primitives/` plus a tiny `triggerLightHaptic()` adapter in `src/platform/haptics.ts` (the chokepoint the `Button` uses instead of touching `navigator.vibrate` directly). The full primitive inventory, accessibility rules, and the list of components intentionally deferred to Phase 9 (`CircularProgress`, `LinearProgress`, `ScoreBadge`, `FormCueCard`, `RepCounter`, `WorkoutTimer`, `Toast`, `SkeletonLoader`, `EmptyState`, `ErrorBoundary`, `ConfidenceIndicator`) are documented in [`docs/COMPONENTS.md`](./docs/COMPONENTS.md). The primitives are presentational only — no real app screens, data-backed UI, or fake users / workouts / stats / AI feedback ship in this phase.
+
 ---
 
 ## Tech Stack (currently present)
@@ -42,6 +45,8 @@ Phase 7 added UX planning documentation only — wireframes for every planned sc
 - **[React Router](https://reactrouter.com/) 6** — route table, route guards, layouts, route-level code splitting (Phase 6)
 - **PWA tooling** via [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) + [`workbox-window`](https://developer.chrome.com/docs/workbox/) (service worker, precache, runtime caching)
 - **[Tailwind CSS](https://tailwindcss.com/)** via PostCSS for Motionly theme tokens and utility styling
+- **[clsx](https://github.com/lukeed/clsx)** for class composition (used by every primitive through `@utils/cn`)
+- **[lucide-react](https://lucide.dev/)** icon set, wrapped by `<Icon>` so size + tone stay tokenized
 - **Fontsource** packages for Inter Variable and Noto Sans Devanagari font loading
 - **[pnpm](https://pnpm.io/)** as the package manager (Node 20+)
 
@@ -115,13 +120,14 @@ Phase 4 added the scalable folder structure and standards that everything else b
 
 - **[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)** — folder layout, layering rules, the platform-adapter pattern, privacy architecture, and a checklist for adding new features.
 - **[`docs/CODING_STANDARDS.md`](./docs/CODING_STANDARDS.md)** — TypeScript, React, hook, service, ML, styling, naming, and import rules.
+- **[`docs/COMPONENTS.md`](./docs/COMPONENTS.md)** — Phase 8 primitive component library: what each primitive is for, accessibility rules, light/dark expectations, and what is deferred to Phase 9.
 - **[`docs/wireframes/`](./docs/wireframes/)** — Phase 7 low-fidelity UX blueprints for every planned screen plus a Mermaid `flow-diagrams.md`.
 - **[`docs/USER_FLOWS.md`](./docs/USER_FLOWS.md)** — Phase 7 narratives for the five critical user journeys (first-time, returning, subscription conversion, permission failure, low-confidence AI).
 - **[`tailwind.config.ts`](./tailwind.config.ts)** — Motionly brand colors, neutral scale, font stack, and typography utilities.
 
 Lint and format are wired up via ESLint + Prettier and enforced by a Husky pre-commit hook (`pnpm format:check && pnpm lint && pnpm typecheck`). Run `pnpm lint` / `pnpm format` manually whenever you want.
 
-The `src/` folders created in Phase 4 are populated only when their phase arrives. As of Phase 6, `src/theme/` holds the design-system foundation, `src/router/` holds the routing skeleton (route table, guards, layouts, lazy loading), `src/pages/` holds honest skeleton route pages, and `src/hooks/` adds a typed `useNavigation()` wrapper. Reusable component primitives, data-backed features, real authentication, and product screens are still deferred to their later phases.
+The `src/` folders created in Phase 4 are populated only when their phase arrives. As of Phase 8, `src/theme/` holds the design-system foundation, `src/router/` holds the routing skeleton (route table, guards, layouts, lazy loading), `src/pages/` holds honest skeleton route pages, `src/hooks/` adds a typed `useNavigation()` wrapper, `src/components/primitives/` holds the Phase 8 primitive UI library, `src/components/routing/` holds the Phase 6 routing-infrastructure components, `src/platform/haptics.ts` is the first platform adapter (vibration), and `src/utils/cn.ts` is the shared `clsx` wrapper. Data-backed features, real authentication, and product screens are still deferred to their later phases.
 
 ---
 

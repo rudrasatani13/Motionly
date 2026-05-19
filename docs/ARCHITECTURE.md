@@ -57,27 +57,29 @@ Higher layers compose lower ones. A page may call a service, a service may call 
 
 Each folder also has its own `README.md` with the in-folder rules. The summary below is the canonical map.
 
-| Folder              | Responsibility                                                                        | Introduced by                  |
-| ------------------- | ------------------------------------------------------------------------------------- | ------------------------------ |
-| `src/assets/`       | Static assets imported by application code (Vite-bundled).                            | Phase 5+ as needed             |
-| `src/components/`   | Shared, reusable UI primitives and composite components. Props in, JSX out.           | Phase 8 — Component primitives |
-| `src/pages/`        | Route-level screens. One file per top-level URL.                                      | Phase 10+                      |
-| `src/router/`       | React Router 6 config, guards, route params, navigation helpers, and routing layouts. | Phase 6 — Routing              |
-| `src/hooks/`        | Custom React hooks shared across the app.                                             | As needed                      |
-| `src/store/`        | Global state (Zustand stores).                                                        | Phase 29 — State management    |
-| `src/services/`     | API clients (Supabase), analytics, subscriptions, persistence orchestration.          | Phase 31+                      |
-| `src/platform/`     | Thin adapters around browser-only APIs. The single chokepoint to the host.            | Phase 16+ (camera first)       |
-| `src/ml/`           | On-device ML: pose, joint angles, exercise state machines.                            | Phase 17+                      |
-| `src/ml/pose/`      | MediaPipe wrapper, landmark normalization, smoothing.                                 | Phase 17 / 18                  |
-| `src/ml/exercises/` | Per-exercise state machines (rep counting, form cues).                                | Phase 22+                      |
-| `src/ml/angles/`    | Pure joint-angle math.                                                                | Phase 20                       |
-| `src/i18n/`         | i18n configuration and translation catalogs.                                          | Phase 42 / 43                  |
-| `src/theme/`        | Theme provider, theme hook, motion constants, and helpers for Tailwind theme mode.    | Phase 5 / 46                   |
-| `src/utils/`        | Pure helpers with no React or DOM dependencies.                                       | As needed                      |
-| `src/types/`        | Cross-feature TypeScript domain types and ambient declarations.                       | As needed                      |
-| `src/workers/`      | Web Worker entry points (pose inference, heavy compute).                              | Phase 19                       |
+| Folder                       | Responsibility                                                                        | Introduced by                  |
+| ---------------------------- | ------------------------------------------------------------------------------------- | ------------------------------ |
+| `src/assets/`                | Static assets imported by application code (Vite-bundled).                            | Phase 5+ as needed             |
+| `src/components/`            | Shared, reusable UI primitives and composite components. Props in, JSX out.           | Phase 8 — Component primitives |
+| `src/components/primitives/` | Phase 8 reusable UI primitives (`Button`, `Input`, `Card`, …).                        | Phase 8 — Component primitives |
+| `src/components/routing/`    | Phase 6 routing-infrastructure components (`RoutePlaceholder`, …).                    | Phase 6 — Routing              |
+| `src/pages/`                 | Route-level screens. One file per top-level URL.                                      | Phase 10+                      |
+| `src/router/`                | React Router 6 config, guards, route params, navigation helpers, and routing layouts. | Phase 6 — Routing              |
+| `src/hooks/`                 | Custom React hooks shared across the app.                                             | As needed                      |
+| `src/store/`                 | Global state (Zustand stores).                                                        | Phase 29 — State management    |
+| `src/services/`              | API clients (Supabase), analytics, subscriptions, persistence orchestration.          | Phase 31+                      |
+| `src/platform/`              | Thin adapters around browser-only APIs. The single chokepoint to the host.            | Phase 16+ (camera first)       |
+| `src/ml/`                    | On-device ML: pose, joint angles, exercise state machines.                            | Phase 17+                      |
+| `src/ml/pose/`               | MediaPipe wrapper, landmark normalization, smoothing.                                 | Phase 17 / 18                  |
+| `src/ml/exercises/`          | Per-exercise state machines (rep counting, form cues).                                | Phase 22+                      |
+| `src/ml/angles/`             | Pure joint-angle math.                                                                | Phase 20                       |
+| `src/i18n/`                  | i18n configuration and translation catalogs.                                          | Phase 42 / 43                  |
+| `src/theme/`                 | Theme provider, theme hook, motion constants, and helpers for Tailwind theme mode.    | Phase 5 / 46                   |
+| `src/utils/`                 | Pure helpers with no React or DOM dependencies.                                       | As needed                      |
+| `src/types/`                 | Cross-feature TypeScript domain types and ambient declarations.                       | As needed                      |
+| `src/workers/`               | Web Worker entry points (pose inference, heavy compute).                              | Phase 19                       |
 
-> Phase 4 created the folders and rules. Phase 5 populates only the theme foundation; product UI, routing, and feature logic remain deferred to their own phases.
+> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, and Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper. Product screens, state management, and feature logic remain deferred to their own phases.
 
 ---
 
@@ -162,6 +164,8 @@ If you find yourself reaching for `navigator.*`, `window.*`, `document.*`, `loca
 
 **Narrow Phase 5 exception:** `src/theme/theme-runtime.ts` may use `window`, `document`, `matchMedia`, and `localStorage` to apply the root `dark` class and persist the theme preference. Keep that browser access isolated inside theme infrastructure until a later storage/platform adapter phase exists.
 
+**Phase 8 haptics adapter:** `src/platform/haptics.ts` is the first real platform adapter — a thin wrapper around `navigator.vibrate(10)` exposed as `triggerLightHaptic()`. Components (currently only `Button`, when its `haptic` prop is set) call this helper instead of touching `navigator.*` directly. It no-ops safely on unsupported devices (Safari, iOS) and requires no permissions.
+
 ---
 
 ## 7. Data Privacy Architecture
@@ -208,13 +212,25 @@ Phase 6 now additionally delivers:
 - Routing-only UI components in `src/components/routing/` (`RoutePlaceholder`, `BottomTabBar`, `ServiceWorkerStatusPill`)
 - Honest skeleton pages for every Phase 6 route under `src/pages/{auth,main,workout,progress,profile,modal,system}/`
 
+Phase 8 now additionally delivers:
+
+- Reusable primitive components under `src/components/primitives/` — `Button`, `Input`, `Text` / `Heading`, `Card`, `Divider`, `Spacer`, `Row`, `Column`, `Badge`, `Tag`, `Chip`, `Icon`, `Avatar`
+- Barrel exports at `src/components/primitives/index.ts` and `src/components/index.ts`
+- Haptics platform adapter `src/platform/haptics.ts` exposing `triggerLightHaptic()`
+- `src/utils/cn.ts` — `clsx`-based class composition helper used across all primitives
+- `clsx` and `lucide-react` added as production dependencies
+- [`docs/COMPONENTS.md`](./COMPONENTS.md) documenting the primitive library
+
+`src/components/routing/` remains the home of the Phase 6 routing-infrastructure components and is intentionally kept separate from `src/components/primitives/`.
+
 These phases **intentionally do not**:
 
 - Implement product screens, fake data, or feature behavior on top of the Phase 6 routing skeleton. Phase 6 wires URLs and route guards only; real screens and real data still arrive in their own phases.
-- Implement components (`src/components/`) — Phase 8
+- Implement product screens or data-backed UI on top of the Phase 8 primitive library. Phase 8 ships presentational primitives only — `Button`, `Input`, `Card`, `Avatar`, etc. — with no fake users, workouts, stats, AI feedback, streaks, or subscription state.
+- Implement Phase 9 feedback/status components (`CircularProgress`, `LinearProgress`, `ScoreBadge`, `FormCueCard`, `RepCounter`, `WorkoutTimer`, `Toast`, `SkeletonLoader`, `EmptyState`, `ErrorBoundary`, `ConfidenceIndicator`) — those wait for their phase and its animation/motion infrastructure.
 - Implement pages (`src/pages/`) — Phase 10+
 - Implement state management (`src/store/`) — Phase 29
-- Implement camera, TTS, storage, or notification adapters (`src/platform/`) — Phase 16+
+- Implement camera, TTS, storage, or notification adapters (`src/platform/`) beyond the Phase 8 `haptics.ts` helper — Phase 16+
 - Implement pose detection or exercise engines (`src/ml/`, `src/workers/`) — Phase 17+
 - Implement Supabase, auth, payments, analytics, notifications, or i18n language packs — their respective phases
 
@@ -314,6 +330,42 @@ Phase 7 introduced **documentation-only** UX artefacts. No runtime code, compone
 - **Wireframes are not a runtime source of truth for fake data.** Sample workout names, score numbers, and dates in the markdown are clearly labeled illustrative documentation. They must not be hard-coded into pages, stores, or seed data.
 - **Visual styling follows Phase 5 tokens.** Wireframes are deliberately low-fidelity. Real visual styling pulls from `tailwind.config.ts` (Motionly brand colors, neutral scale, typography utilities) and the clean Apple-style minimal direction established for the product.
 - **Wireframes do not introduce routes.** Phase 6 already shipped the route surface. Where a wireframed sub-state (e.g. post-set summary, mid-workout feedback) does not have a route today, the wireframe documents whether it is part of an existing route, a modal state, or a future routing decision.
+
+---
+
+## 10d. Primitive Component Library (Phase 8)
+
+Phase 8 adds Motionly's reusable UI primitives under `src/components/primitives/`. They are the canonical building blocks that all future product screens compose from. The full inventory, accessibility rules, light/dark expectations, and deferred Phase 9 components are documented in [`COMPONENTS.md`](./COMPONENTS.md).
+
+### Module map
+
+| File                                    | Responsibility                                                                                                 |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `src/components/primitives/Button.tsx`  | Tappable primitive with primary/secondary/ghost/danger/icon variants, loading state, optional haptic feedback. |
+| `src/components/primitives/Input.tsx`   | Single-line text input with label / helper / error / password toggle.                                          |
+| `src/components/primitives/Text.tsx`    | `Text` and `Heading` typographic primitives.                                                                   |
+| `src/components/primitives/Card.tsx`    | Content surface with `default` / `elevated` / `outlined` variants.                                             |
+| `src/components/primitives/Divider.tsx` | Horizontal `<hr>` or vertical separator span.                                                                  |
+| `src/components/primitives/Spacer.tsx`  | Decorative whitespace primitive.                                                                               |
+| `src/components/primitives/Row.tsx`     | Horizontal flex layout primitive.                                                                              |
+| `src/components/primitives/Column.tsx`  | Vertical flex layout primitive.                                                                                |
+| `src/components/primitives/flex.ts`     | Shared `align` / `justify` / `gap` types and class composer for `Row` / `Column`.                              |
+| `src/components/primitives/Badge.tsx`   | Small color-coded status / category label.                                                                     |
+| `src/components/primitives/Tag.tsx`     | Static metadata pill.                                                                                          |
+| `src/components/primitives/Chip.tsx`    | Interactive selectable pill (`<button>` with `aria-pressed`).                                                  |
+| `src/components/primitives/Icon.tsx`    | Token-aware wrapper around any `lucide-react` icon.                                                            |
+| `src/components/primitives/Avatar.tsx`  | Round avatar with image / initials / icon fallback chain.                                                      |
+| `src/components/primitives/index.ts`    | Barrel export.                                                                                                 |
+| `src/platform/haptics.ts`               | `triggerLightHaptic()` adapter wrapping `navigator.vibrate(10)`.                                               |
+| `src/utils/cn.ts`                       | `clsx`-based class composition helper.                                                                         |
+
+### Rules
+
+- **Use primitives before inventing one-off UI.** When you build a screen in a later phase, reach for `Button` / `Input` / `Card` / `Row` / `Column` first. Add a new primitive only when the composition is reused in multiple screens.
+- **Routing-infrastructure components stay separate.** `src/components/routing/` is not the primitive library. Keep `RoutePlaceholder`, `BottomTabBar`, and `ServiceWorkerStatusPill` there until they are revisited / refactored.
+- **No hardcoded colors.** Primitives use Motionly Tailwind tokens (`bg-motionly-*`, `text-motionly-*`, `border-motionly-*`). Hex values stay in `tailwind.config.ts`.
+- **No fake data in primitives.** `Avatar` does not invent initials, `Badge` / `Chip` / `Tag` do not invent labels, and `Button` does not show fabricated success / progress messaging.
+- **Browser APIs go through `src/platform/`.** The `Button` triggers haptic feedback by calling `triggerLightHaptic()` from `@platform/haptics`, not `navigator.vibrate` directly.
 
 ---
 

@@ -429,6 +429,21 @@ pnpm build           # Sanity check that nothing in src/ broke
 
 GitHub renders the Mermaid diagrams in `wireframes/flow-diagrams.md` inline. To iterate on a diagram visually, copy a single block into [mermaid.live](https://mermaid.live).
 
+## 16e. Primitive Component Library (Phase 8)
+
+Phase 8 added Motionly's reusable UI primitives under `src/components/primitives/`. The full inventory, accessibility rules, and the components intentionally deferred to Phase 9 are documented in [`./COMPONENTS.md`](./COMPONENTS.md).
+
+No new commands are required for Phase 8 beyond the existing checks:
+
+```bash
+pnpm format:check    # Prettier verifies the new files
+pnpm lint            # ESLint surfaces unused vars / a11y issues
+pnpm typecheck       # Strict TS over the new primitives
+pnpm build           # Confirms the primitives bundle cleanly
+```
+
+Two new dependencies were added: `clsx` (used through `@utils/cn`) and `lucide-react` (wrapped by `<Icon>`). No other package was introduced — the Phase 9 toast/progress libraries and any animation library land in their own phases.
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:
@@ -502,6 +517,9 @@ After install:
 │   ├── router/                 # Route table, guards, layouts (Phase 6)
 │   ├── pages/                  # Honest skeleton route pages (Phase 6)
 │   ├── components/routing/     # RoutePlaceholder, BottomTabBar, status pill
+│   ├── components/primitives/  # Phase 8 primitive UI library
+│   ├── platform/haptics.ts     # Phase 8 haptics adapter (navigator.vibrate)
+│   ├── utils/cn.ts             # Phase 8 clsx-based class composer
 │   ├── sw-register.ts          # Workbox SW lifecycle helper
 │   └── vite-env.d.ts           # Vite / PWA ambient types
 └── docs/SETUP.md               # This file

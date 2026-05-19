@@ -94,6 +94,21 @@ Phase 7 shipped UX planning docs under [`../wireframes/`](./wireframes) and [`..
 
 ---
 
+## 6c. Primitive Components (Phase 8)
+
+Phase 8 introduced Motionly's reusable UI primitives under `src/components/primitives/`. They are the canonical building blocks for product screens, and the full inventory lives in [`COMPONENTS.md`](./COMPONENTS.md).
+
+- **Use the primitives first.** Before reaching for raw Tailwind on a `<button>`, `<input>`, `<div>`, or `<span>` in a product screen, check whether `Button`, `Input`, `Card`, `Row`, `Column`, `Badge`, `Tag`, `Chip`, `Icon`, or `Avatar` already covers the case. Three similar lines is better than a premature abstraction, but a fourth occurrence should be composed from the primitive.
+- **Do not bypass `Button` / `Input` / `Card` for basic UI in future screens.** Raw `<button>` / `<input>` elements show up in product code only when the primitive genuinely doesn't fit — and that is rare. If you need new behavior, extend the primitive instead of re-implementing it inline.
+- **Use the `Icon` wrapper instead of raw lucide imports in product screens** unless there is a clear reason (e.g. the icon is rendered inside another lucide-aware primitive). The wrapper enforces size + tone tokens and accessibility defaults.
+- **Compose with `Row` / `Column`** instead of sprinkling `flex items-* justify-* gap-*` across pages. Reserve raw flex utilities for one-off layouts inside the primitive itself.
+- **No hardcoded colors.** Primitives and their consumers use Motionly Tailwind tokens (`bg-motionly-*`, `text-motionly-*`, `border-motionly-*`). Hex values stay in `tailwind.config.ts`.
+- **No fake data in primitive examples or callers.** `Avatar` never invents initials; `Badge`, `Tag`, `Chip` never invent labels; `Button` never shows fabricated success or progress text. If you find yourself reaching for placeholder users / workouts / stats / AI feedback to demo a primitive, build the demo with copy that is obviously generic ("Field label", "Action") rather than fabricating product data.
+- **Browser APIs stay behind `src/platform/`.** `Button`'s optional haptic feedback calls `triggerLightHaptic()` from `@platform/haptics`. Do not call `navigator.vibrate` (or any other browser global) from a component, hook, or page.
+- **Phase 9 components are out of scope.** `CircularProgress`, `LinearProgress`, `ScoreBadge`, `FormCueCard`, `RepCounter`, `WorkoutTimer`, `Toast`, `SkeletonLoader`, `EmptyState`, `ErrorBoundary`, and `ConfidenceIndicator` ship in their own phase. Do not back-port them into the Phase 8 primitive library.
+
+---
+
 ## 7. Styling
 
 - **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.
@@ -101,7 +116,7 @@ Phase 7 shipped UX planning docs under [`../wireframes/`](./wireframes) and [`..
 - **Use the Phase 5 typography utilities.** Prefer `text-h1`, `text-h2`, `text-h3`, `text-body`, `text-label`, and `text-caption` over arbitrary font sizes.
 - **Keep spacing simple.** Use Tailwind's default spacing scale unless a later phase introduces a documented exception.
 - **Dark mode uses a class strategy.** `ThemeProvider` applies or removes the `dark` class on `document.documentElement`; components should use Tailwind `dark:` variants and must not implement their own theme toggling infrastructure.
-- **Do not invent component-level design systems before Phase 8.** No component kits, UI libraries, parallel token files, or reusable primitives should be introduced before the component-primitives phase asks for them.
+- **Do not invent component-level design systems before Phase 8.** Phase 8 ships the primitive UI library under `src/components/primitives/`; do not introduce parallel token files, UI libraries, or component kits.
 
 ---
 

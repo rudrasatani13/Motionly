@@ -8,6 +8,8 @@ Small, pure helper functions and shared constants with no React or DOM dependenc
 - Formatters (time, duration, number)
 - Generic predicates and type guards
 - App-wide constants that don't fit a more specific folder
+- Class composition helpers — `cn.ts` (Phase 8) wraps `clsx` for the
+  primitive components
 
 ## What does NOT belong here
 
@@ -19,4 +21,6 @@ Small, pure helper functions and shared constants with no React or DOM dependenc
 
 ## Phase status
 
-Reserved. Utilities accrue as features are built. Empty by design.
+**Phase 8** added `cn.ts`, the `clsx` wrapper used by every primitive
+in `src/components/primitives/`. Other utilities accrue as features are
+built.
