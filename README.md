@@ -1,0 +1,109 @@
+# Motionly
+
+> **Move Better.**
+
+Motionly is a PWA-first, privacy-first AI fitness coach foundation. The MVP roadmap targets browser-based real-time movement coaching using on-device pose estimation in later phases.
+
+---
+
+## Current Status
+
+- **Phase 1 — Development Environment Setup:** complete.
+- **Phase 2 — PWA Foundation (Vite + React + TypeScript):** complete.
+- **Phase 3 — Git Repository & Branching Strategy Setup:** in progress.
+
+### Honest scope note
+
+This repository is an early-stage foundation. The following are **planned for later phases of [`MOTIONLY_MASTER_PLAN.md`](./MOTIONLY_MASTER_PLAN.md) and do NOT exist yet**:
+
+- Camera permissions and live camera preview
+- On-device pose estimation, skeleton overlay, form scoring
+- Real-time AI coaching, voice cues, rep counting
+- Workout library, workout plans, adaptive difficulty
+- Authentication, user accounts, profiles
+- Supabase backend, sync, history, analytics
+- Subscriptions, paywall, free-tier enforcement
+- Settings, dark-mode tokens, accessibility audit, i18n
+
+The app shell currently shows the Motionly name, tagline, and a single status pill reflecting PWA / service-worker readiness — nothing more. There is no fake user state, fake stats, fake AI claim, or placeholder workout content in the repo.
+
+---
+
+## Tech Stack (currently present)
+
+- **[Vite](https://vitejs.dev/)** — dev server and bundler
+- **[React](https://react.dev/) 18** with **TypeScript** (strict mode)
+- **PWA tooling** via [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) + [`workbox-window`](https://developer.chrome.com/docs/workbox/) (service worker, precache, runtime caching)
+- **[pnpm](https://pnpm.io/)** as the package manager (Node 20+)
+
+Future stack additions (Tailwind, React Router, Zustand, Supabase, MediaPipe, etc.) are introduced in their own phases per `MOTIONLY_MASTER_PLAN.md` and are not present yet.
+
+---
+
+## Setup
+
+See **[`docs/SETUP.md`](./docs/SETUP.md)** for the full developer environment guide — Node, pnpm, VS Code, real-phone LAN testing, and troubleshooting.
+
+Quick start once Node 20+ and pnpm are installed:
+
+```bash
+nvm use           # match the Node version pinned in .nvmrc
+pnpm install
+pnpm dev          # http://localhost:5173 + LAN URL
+```
+
+---
+
+## Common Commands
+
+| Command | What it does |
+|---|---|
+| `pnpm install` | Install dependencies (uses `pnpm-workspace.yaml`) |
+| `pnpm dev` | Vite dev server bound to LAN (`--host`) so a phone can reach it |
+| `pnpm dev:local` | Vite dev server bound to `localhost` only |
+| `pnpm typecheck` | Strict TypeScript check across app + Vite config |
+| `pnpm build` | `tsc -b` then `vite build` → `dist/` with PWA artifacts |
+| `pnpm preview` | Serve the production build from `dist/` (http://localhost:4173) |
+
+---
+
+## Testing the PWA
+
+> Service workers and PWA install prompts only run against the **production build**, not the dev server (`devOptions.enabled: false` in `vite.config.ts`).
+
+```bash
+pnpm build && pnpm preview
+```
+
+Then open http://localhost:4173/ and check DevTools → Application → Manifest and Service Workers. See `docs/SETUP.md` §15–§18 for the full PWA / offline test procedure.
+
+---
+
+## Repository Standards
+
+This repository follows lightweight conventions documented in **[`docs/REPOSITORY_STANDARDS.md`](./docs/REPOSITORY_STANDARDS.md)**:
+
+- **Conventional Commits** (`feat:`, `fix:`, `docs:`, `chore:`, …)
+- **Current workflow:** solo developer working directly on `main`. Commits are kept small, scoped to one phase, and checked locally with `pnpm typecheck` + `pnpm build` before pushing.
+- **Future workflow** (from the master plan, adopted when collaboration or staging deployment requires it):
+  - `main` — production releases
+  - `develop` — integration / staging
+  - `feature/phase-XX-description` — phase-scoped work
+  - `fix/issue-description` — bug fixes
+  - PR reviews + branch protection on `main` once CI exists
+
+A practical PR template lives at [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md) and will activate once contributors start opening pull requests on GitHub.
+
+---
+
+## Privacy & Product Principle
+
+Motionly is designed so that **no raw video ever leaves the device**. All future pose estimation, form analysis, and coaching logic is intended to run on-device in the browser. Network calls in later phases are expected to carry only derived signals (rep counts, form scores, anonymous analytics where opted in) — never camera frames or video.
+
+This principle constrains architectural decisions in every later phase and should not be compromised for convenience.
+
+---
+
+## Master Plan
+
+The single source of truth for scope, ordering, and deliverables across all phases is **[`MOTIONLY_MASTER_PLAN.md`](./MOTIONLY_MASTER_PLAN.md)**. Read the relevant phase before making changes; do not implement features outside the current phase's scope.

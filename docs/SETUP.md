@@ -460,3 +460,9 @@ Before considering Phase 2 done locally:
 - [ ] Lighthouse PWA audit ≥ 90 on the preview URL.
 - [ ] The same preview URL loads on a physical phone via the LAN IP (install testing may require a tunnel — see §17).
 - [ ] Offline reload after first load still renders the app shell.
+
+---
+
+## 23. Repository Standards
+
+Commit conventions, branching strategy (current and future), pre-commit checks, and GitHub branch-protection guidance are documented in **[`REPOSITORY_STANDARDS.md`](./REPOSITORY_STANDARDS.md)**. Read it before opening your first PR.
