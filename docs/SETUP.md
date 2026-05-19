@@ -1,6 +1,6 @@
 # Motionly — Development Environment Setup
 
-This guide gets a new developer from a fresh machine to a ready Motionly development environment in about 10 minutes. It corresponds to **Phase 1 — Development Environment Setup** of `MOTIONLY_MASTER_PLAN.md`.
+This guide gets a new developer from a fresh machine to a ready Motionly development environment in about 10 minutes. It originated with **Phase 1 — Development Environment Setup** of `MOTIONLY_MASTER_PLAN.md` and now also covers the operational guide for the PWA foundation delivered in Phase 2.
 
 ---
 
@@ -8,10 +8,11 @@ This guide gets a new developer from a fresh machine to a ready Motionly develop
 
 Motionly is a **PWA-first** fitness app.
 
-- Stack (planned): **Vite + React + TypeScript**, installable as a Progressive Web App.
+- Stack: **Vite + React + TypeScript**, installable as a Progressive Web App.
 - Primary device target: **Android Chrome** on a real phone.
 - Secondary targets: desktop Chrome / Edge for development and DevTools.
-- The repository is currently in Phase 1 (developer environment only). The Vite app itself is scaffolded in Phase 2.
+- Repository status: the initial environment setup (Phase 1), PWA foundation (Phase 2), and repository standards (Phase 3) phases are complete. Follow `MOTIONLY_MASTER_PLAN.md` for whichever phase is currently active.
+- The app is still early-stage: it contains only the PWA foundation and an honest app shell. Features such as camera coaching, pose estimation, workout plans, auth, payments, and backend sync are introduced in their own later phases and are not present unless those phases have been completed.
 
 **You do not need any of the following:**
 
