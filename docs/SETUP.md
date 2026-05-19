@@ -8,10 +8,10 @@ This guide gets a new developer from a fresh machine to a ready Motionly develop
 
 Motionly is a **PWA-first** fitness app.
 
-- Stack: **Vite + React + TypeScript**, installable as a Progressive Web App.
+- Stack: **Vite + React + TypeScript + Tailwind CSS**, installable as a Progressive Web App.
 - Primary device target: **Android Chrome** on a real phone.
 - Secondary targets: desktop Chrome / Edge for development and DevTools.
-- Repository status: the initial environment setup (Phase 1), PWA foundation (Phase 2), and repository standards (Phase 3) phases are complete. Follow `MOTIONLY_MASTER_PLAN.md` for whichever phase is currently active.
+- Repository status: the initial environment setup (Phase 1), PWA foundation (Phase 2), repository standards (Phase 3), architecture standards (Phase 4), and design-system foundation (Phase 5) phases are complete. Follow `MOTIONLY_MASTER_PLAN.md` for whichever phase is currently active.
 - The app is still early-stage: it contains only the PWA foundation and an honest app shell. Features such as camera coaching, pose estimation, workout plans, auth, payments, and backend sync are introduced in their own later phases and are not present unless those phases have been completed.
 
 **You do not need any of the following:**
@@ -111,7 +111,7 @@ Install these extensions:
 
 - **ESLint** (`dbaeumer.vscode-eslint`) — surface lint errors inline
 - **Prettier — Code formatter** (`esbenp.prettier-vscode`) — formatting on save
-- **Tailwind CSS IntelliSense** (`bradlc.vscode-tailwindcss`) — Tailwind class autocompletion (used from Phase 2 onward)
+- **Tailwind CSS IntelliSense** (`bradlc.vscode-tailwindcss`) — Tailwind class autocompletion (used from Phase 5 onward)
 - **GitLens** (`eamodio.gitlens`) — git blame, history, inline annotations
 - **Todo Tree** (`Gruntfuggly.todo-tree`) — scans the workspace for `TODO` / `FIXME` markers
 - **Vitest** (`vitest.explorer`) — test runner integration (used from later phases)
@@ -367,6 +367,14 @@ The full repo-wide rule set is documented in:
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — folder layout, layering, platform-adapter pattern, privacy architecture.
 - [`CODING_STANDARDS.md`](./CODING_STANDARDS.md) — TypeScript, React, hook, service, ML, styling, naming, and import rules.
 
+## 16b. Tailwind and Theme Foundation (Phase 5)
+
+Tailwind runs through Vite's normal CSS pipeline via `postcss.config.js`; there is no separate Tailwind command to run. `src/index.css` contains the Tailwind directives plus minimal global base styles, and `tailwind.config.ts` is the source of truth for Motionly brand colors, neutral colors, font families, and typography utilities.
+
+Fonts are loaded in `src/main.tsx` with `@fontsource-variable/inter` and `@fontsource/noto-sans-devanagari`. The Devanagari font is present now for future Hindi/Hinglish readiness, but no translations or i18n runtime exist yet.
+
+`ThemeProvider` wraps the React root and persists the user's `light` / `dark` / `system` preference in `localStorage`. It applies Tailwind's class-based dark mode by toggling `dark` on `document.documentElement`; no settings screen or product theme toggle exists yet.
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:
@@ -402,9 +410,9 @@ After install:
 4. Reload the page. The app shell should still render. The status pill at the bottom should read "PWA foundation initialized · offline ready".
 5. Optionally, in DevTools → **Application** → **Service workers**, check **Offline** and reload — same expectation.
 
-> Phase 2 ships only the app shell, so there is no further content to verify offline. Runtime caching rules for `/models/`, `/audio/`, and font requests are pre-wired in `vite.config.ts` but are exercised in later phases when those files exist.
+> The app still ships only the honest shell, so there is no further product content to verify offline. Runtime caching rules for `/models/`, `/audio/`, and font requests are pre-wired in `vite.config.ts`; fonts are exercised by Phase 5, while models and audio cues arrive later.
 
-## 19. Project Layout (Phase 2)
+## 19. Project Layout (Current)
 
 ```
 .
@@ -415,21 +423,27 @@ After install:
 ├── tsconfig.app.json           # strict TS + path aliases for src/
 ├── tsconfig.node.json          # TS for vite.config.ts
 ├── vite.config.ts              # React + tsconfig-paths + VitePWA
+├── tailwind.config.ts          # Motionly design tokens + Tailwind dark mode
+├── postcss.config.js           # Tailwind + Autoprefixer
 ├── public/
 │   ├── favicon.svg             # in-tab Motionly mark (vector)
 │   ├── favicon.ico             # legacy / Windows tab icon
 │   ├── favicon-96x96.png       # small raster favicon
+│   ├── favicon-light-96x96.png # light-mode raster favicon
 │   ├── apple-touch-icon.png    # 180×180 iOS home-screen icon
 │   ├── web-app-manifest-192x192.png  # PWA icon (any)
 │   ├── web-app-manifest-512x512.png  # PWA icon (any + maskable)
 │   ├── Motionly.png            # 1024×1024 brand source (not precached)
+│   ├── motionly-mark-light.png # 1024×1024 light brand source (not precached)
+│   ├── motionly-mark-light-192.png # Light-mode app-shell mark
 │   ├── models/                 # reserved for ML models (Phase 17)
 │   └── audio/cues/             # reserved for voice cues (Phase 25)
 ├── src/
 │   ├── main.tsx                # React entry, SW registration
 │   ├── App.tsx                 # Minimal app shell
-│   ├── App.css                 # Shell styles
-│   ├── index.css               # Global tokens + reset
+│   ├── index.css               # Tailwind directives + global base styles
+│   ├── hooks/useTheme.ts       # Public theme hook re-export
+│   ├── theme/                  # ThemeProvider, useTheme, motion constants
 │   ├── sw-register.ts          # Workbox SW lifecycle helper
 │   └── vite-env.d.ts           # Vite / PWA ambient types
 └── docs/SETUP.md               # This file
@@ -456,16 +470,13 @@ After install:
 | `@router/`     | `src/router/`     |
 | `@i18n/`       | `src/i18n/`       |
 
-Only the directories required for Phase 2 (`@/`) actually exist yet — the rest are reserved for later phases and will be created when those phases need them. There is no need to pre-create empty directories.
+> **Phase 5 update:** Phase 4 created the aliased folder skeleton. `src/theme/` now contains real theme infrastructure and `src/hooks/useTheme.ts` re-exports the theme hook. The remaining folders stay reserved until their phases arrive. See [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) for the full map.
 
-> **Phase 4 update:** the rest of the `src/` skeleton (`components/`, `pages/`, `hooks/`, `store/`, `services/`, `platform/`, `ml/{pose,exercises,angles}`, `router/`, `theme/`, `i18n/`, `utils/`, `types/`, `workers/`, `assets/`) now exists as **empty folders with a `README.md` in each** describing their purpose and which future phase populates them. See [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) for the full map.
+## 21. What the Current Foundation Intentionally Does NOT Include
 
-## 21. What Phase 2 Intentionally Does NOT Include
-
-Per `MOTIONLY_MASTER_PLAN.md`, the following are deferred to their own phases. Do **not** add any of these in Phase 2 commits:
+Per `MOTIONLY_MASTER_PLAN.md`, the following are deferred to their own phases. Do **not** add any of these until their phase is active:
 
 - Routing (Phase 6)
-- Design system, theme tokens beyond the minimal shell (Phase 5)
 - Splash / launch experience (Phase 10)
 - Onboarding screens (Phases 11–12)
 - Dashboard, workout library, workout detail (Phases 13–15)
@@ -476,7 +487,7 @@ Per `MOTIONLY_MASTER_PLAN.md`, the following are deferred to their own phases. D
 - Stripe / Razorpay, paywall, free-tier limits (Phases 36–38)
 - i18n, Hindi pack (Phases 42–43)
 - Web Push, notifications (Phase 44)
-- Settings, dark-mode tokens, accessibility audit (Phases 45–47)
+- Settings UI and accessibility audit (Phases 45–47)
 
 The current `src/App.tsx` is **only** an honest app shell with the Motionly name, tagline, and a single status pill that reflects PWA / service-worker readiness. There is no fake user state, fake stats, fake AI claim, or placeholder workout content.
 

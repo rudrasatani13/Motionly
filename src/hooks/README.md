@@ -22,4 +22,4 @@ Custom React hooks shared across the app.
 
 ## Phase status
 
-Reserved. Hooks are introduced incrementally starting with the design-system and routing phases. Currently empty by design.
+Phase 5 adds `useTheme.ts` as the public hook re-export for Motionly's theme context. Additional hooks are introduced only when their phase requires them.

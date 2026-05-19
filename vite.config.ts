@@ -14,7 +14,9 @@ export default defineConfig({
         'favicon.svg',
         'favicon.ico',
         'favicon-96x96.png',
+        'favicon-light-96x96.png',
         'apple-touch-icon.png',
+        'motionly-mark-light-192.png',
         'web-app-manifest-192x192.png',
         'web-app-manifest-512x512.png',
       ],
@@ -57,7 +59,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff,woff2}'],
-        globIgnores: ['**/Motionly.png'],
+        globIgnores: ['**/Motionly.png', '**/motionly-mark-light.png'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,

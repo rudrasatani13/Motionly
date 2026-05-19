@@ -37,12 +37,44 @@ export function useServiceWorkerStatus(): SWStatus {
   });
 
   useEffect(() => {
+    let isMounted = true;
+
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<SWStatus>).detail;
       setStatus(detail);
     };
+
     window.addEventListener('motionly:sw', handler);
-    return () => window.removeEventListener('motionly:sw', handler);
+
+    const registrationTimeout = window.setTimeout(() => {
+      if (isMounted) {
+        setStatus((currentStatus) => (currentStatus === 'registering' ? 'error' : currentStatus));
+      }
+    }, 5000);
+
+    if ('serviceWorker' in navigator && import.meta.env.PROD) {
+      navigator.serviceWorker.ready
+        .then(() => {
+          if (isMounted) {
+            setStatus((currentStatus) =>
+              currentStatus === 'update-available' ? currentStatus : 'ready',
+            );
+          }
+        })
+        .catch(() => {
+          if (isMounted) {
+            setStatus((currentStatus) =>
+              currentStatus === 'registering' ? 'error' : currentStatus,
+            );
+          }
+        });
+    }
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(registrationTimeout);
+      window.removeEventListener('motionly:sw', handler);
+    };
   }, []);
 
   return status;

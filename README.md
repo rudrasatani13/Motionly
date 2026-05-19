@@ -12,6 +12,7 @@ Motionly is a PWA-first, privacy-first AI fitness coach foundation. The MVP road
 - **Phase 2 — PWA Foundation (Vite + React + TypeScript):** complete.
 - **Phase 3 — Git Repository & Branching Strategy Setup:** complete.
 - **Phase 4 — Project Folder Structure & Architecture Standards:** complete.
+- **Phase 5 — Design System Foundation: Tokens & Theme:** complete.
 
 ### Honest scope note
 
@@ -24,7 +25,7 @@ This repository is an early-stage foundation. The following are **planned for la
 - Authentication, user accounts, profiles
 - Supabase backend, sync, history, analytics
 - Subscriptions, paywall, free-tier enforcement
-- Settings, dark-mode tokens, accessibility audit, i18n
+- Settings UI, accessibility audit, i18n
 
 The app shell currently shows the Motionly name, tagline, and a single status pill reflecting PWA / service-worker readiness — nothing more. There is no fake user state, fake stats, fake AI claim, or placeholder workout content in the repo.
 
@@ -35,9 +36,11 @@ The app shell currently shows the Motionly name, tagline, and a single status pi
 - **[Vite](https://vitejs.dev/)** — dev server and bundler
 - **[React](https://react.dev/) 18** with **TypeScript** (strict mode)
 - **PWA tooling** via [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) + [`workbox-window`](https://developer.chrome.com/docs/workbox/) (service worker, precache, runtime caching)
+- **[Tailwind CSS](https://tailwindcss.com/)** via PostCSS for Motionly theme tokens and utility styling
+- **Fontsource** packages for Inter Variable and Noto Sans Devanagari font loading
 - **[pnpm](https://pnpm.io/)** as the package manager (Node 20+)
 
-Future stack additions (Tailwind, React Router, Zustand, Supabase, MediaPipe, etc.) are introduced in their own phases per `MOTIONLY_MASTER_PLAN.md` and are not present yet.
+Future stack additions (React Router, Zustand, Supabase, MediaPipe, etc.) are introduced in their own phases per `MOTIONLY_MASTER_PLAN.md` and are not present yet.
 
 ---
 
@@ -103,14 +106,15 @@ A practical PR template lives at [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/
 
 ## Architecture & Coding Standards
 
-Phase 4 added the scalable folder structure and standards that everything else builds on:
+Phase 4 added the scalable folder structure and standards that everything else builds on. Phase 5 added the design-system foundation:
 
 - **[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)** — folder layout, layering rules, the platform-adapter pattern, privacy architecture, and a checklist for adding new features.
 - **[`docs/CODING_STANDARDS.md`](./docs/CODING_STANDARDS.md)** — TypeScript, React, hook, service, ML, styling, naming, and import rules.
+- **[`tailwind.config.ts`](./tailwind.config.ts)** — Motionly brand colors, neutral scale, font stack, and typography utilities.
 
 Lint and format are wired up via ESLint + Prettier and enforced by a Husky pre-commit hook (`pnpm format:check && pnpm lint && pnpm typecheck`). Run `pnpm lint` / `pnpm format` manually whenever you want.
 
-The `src/` folders created in Phase 4 (`components/`, `pages/`, `hooks/`, `store/`, `services/`, `platform/`, `ml/`, `router/`, `theme/`, `i18n/`, `utils/`, `types/`, `workers/`, `assets/`) are intentionally empty apart from a `README.md` in each. They are populated by their respective phases — see the master plan.
+The `src/` folders created in Phase 4 are populated only when their phase arrives. As of Phase 5, `src/theme/` contains `ThemeProvider`, `useTheme`, and motion constants, and `src/hooks/useTheme.ts` re-exports the public theme hook. Product screens, routing, reusable component primitives, and data-backed features are still deferred.
 
 ---
 

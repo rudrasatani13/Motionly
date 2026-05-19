@@ -57,27 +57,27 @@ Higher layers compose lower ones. A page may call a service, a service may call 
 
 Each folder also has its own `README.md` with the in-folder rules. The summary below is the canonical map.
 
-| Folder              | Responsibility                                                               | Introduced by                  |
-| ------------------- | ---------------------------------------------------------------------------- | ------------------------------ |
-| `src/assets/`       | Static assets imported by application code (Vite-bundled).                   | Phase 5+ as needed             |
-| `src/components/`   | Shared, reusable UI primitives and composite components. Props in, JSX out.  | Phase 8 — Component primitives |
-| `src/pages/`        | Route-level screens. One file per top-level URL.                             | Phase 10+                      |
-| `src/router/`       | React Router 6 config, guards, route params, navigation helpers.             | Phase 6 — Routing              |
-| `src/hooks/`        | Custom React hooks shared across the app.                                    | As needed                      |
-| `src/store/`        | Global state (Zustand stores).                                               | Phase 29 — State management    |
-| `src/services/`     | API clients (Supabase), analytics, subscriptions, persistence orchestration. | Phase 31+                      |
-| `src/platform/`     | Thin adapters around browser-only APIs. The single chokepoint to the host.   | Phase 16+ (camera first)       |
-| `src/ml/`           | On-device ML: pose, joint angles, exercise state machines.                   | Phase 17+                      |
-| `src/ml/pose/`      | MediaPipe wrapper, landmark normalization, smoothing.                        | Phase 17 / 18                  |
-| `src/ml/exercises/` | Per-exercise state machines (rep counting, form cues).                       | Phase 22+                      |
-| `src/ml/angles/`    | Pure joint-angle math.                                                       | Phase 20                       |
-| `src/i18n/`         | i18n configuration and translation catalogs.                                 | Phase 42 / 43                  |
-| `src/theme/`        | Tailwind tokens, `ThemeProvider`, motion constants.                          | Phase 5 / 46                   |
-| `src/utils/`        | Pure helpers with no React or DOM dependencies.                              | As needed                      |
-| `src/types/`        | Cross-feature TypeScript domain types and ambient declarations.              | As needed                      |
-| `src/workers/`      | Web Worker entry points (pose inference, heavy compute).                     | Phase 19                       |
+| Folder              | Responsibility                                                                     | Introduced by                  |
+| ------------------- | ---------------------------------------------------------------------------------- | ------------------------------ |
+| `src/assets/`       | Static assets imported by application code (Vite-bundled).                         | Phase 5+ as needed             |
+| `src/components/`   | Shared, reusable UI primitives and composite components. Props in, JSX out.        | Phase 8 — Component primitives |
+| `src/pages/`        | Route-level screens. One file per top-level URL.                                   | Phase 10+                      |
+| `src/router/`       | React Router 6 config, guards, route params, navigation helpers.                   | Phase 6 — Routing              |
+| `src/hooks/`        | Custom React hooks shared across the app.                                          | As needed                      |
+| `src/store/`        | Global state (Zustand stores).                                                     | Phase 29 — State management    |
+| `src/services/`     | API clients (Supabase), analytics, subscriptions, persistence orchestration.       | Phase 31+                      |
+| `src/platform/`     | Thin adapters around browser-only APIs. The single chokepoint to the host.         | Phase 16+ (camera first)       |
+| `src/ml/`           | On-device ML: pose, joint angles, exercise state machines.                         | Phase 17+                      |
+| `src/ml/pose/`      | MediaPipe wrapper, landmark normalization, smoothing.                              | Phase 17 / 18                  |
+| `src/ml/exercises/` | Per-exercise state machines (rep counting, form cues).                             | Phase 22+                      |
+| `src/ml/angles/`    | Pure joint-angle math.                                                             | Phase 20                       |
+| `src/i18n/`         | i18n configuration and translation catalogs.                                       | Phase 42 / 43                  |
+| `src/theme/`        | Theme provider, theme hook, motion constants, and helpers for Tailwind theme mode. | Phase 5 / 46                   |
+| `src/utils/`        | Pure helpers with no React or DOM dependencies.                                    | As needed                      |
+| `src/types/`        | Cross-feature TypeScript domain types and ambient declarations.                    | As needed                      |
+| `src/workers/`      | Web Worker entry points (pose inference, heavy compute).                           | Phase 19                       |
 
-> **Phase 4 (this phase) creates the folders and rules. It does not populate them with features.**
+> Phase 4 created the folders and rules. Phase 5 populates only the theme foundation; product UI, routing, and feature logic remain deferred to their own phases.
 
 ---
 
@@ -88,9 +88,12 @@ Files in `public/` are reachable by **URL** in the browser. The build copies the
 | Path                                                     | Purpose                                                                                    |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `public/favicon.svg`, `favicon.ico`, `favicon-96x96.png` | Tab icons.                                                                                 |
+| `public/favicon-light-96x96.png`                         | Light-mode tab icon selected by `ThemeProvider`.                                           |
 | `public/apple-touch-icon.png`                            | iOS home-screen icon (180×180).                                                            |
 | `public/web-app-manifest-192x192.png` / `512x512.png`    | Installable PWA icons (`any` and `maskable`).                                              |
 | `public/Motionly.png`                                    | 1024×1024 brand source. Excluded from precache via `workbox.globIgnores`.                  |
+| `public/motionly-mark-light.png`                         | 1024×1024 light-mode brand source. Excluded from precache via `workbox.globIgnores`.       |
+| `public/motionly-mark-light-192.png`                     | Light-mode app-shell mark.                                                                 |
 | `public/models/`                                         | **Reserved (Phase 17).** MediaPipe model files. Cached `CacheFirst` by the service worker. |
 | `public/audio/cues/`                                     | **Reserved (Phase 25).** Voice cue audio. Cached `CacheFirst` by the service worker.       |
 
@@ -157,6 +160,8 @@ None of these exist yet. Each lands in its own phase.
 
 If you find yourself reaching for `navigator.*`, `window.*`, `document.*`, `localStorage`, or `indexedDB` from outside `src/platform/`: stop. Add (or extend) an adapter first.
 
+**Narrow Phase 5 exception:** `src/theme/theme-runtime.ts` may use `window`, `document`, `matchMedia`, and `localStorage` to apply the root `dark` class and persist the theme preference. Keep that browser access isolated inside theme infrastructure until a later storage/platform adapter phase exists.
+
 ---
 
 ## 7. Data Privacy Architecture
@@ -183,16 +188,23 @@ This phase (**Phase 4**) delivers:
 - This architecture document and the companion coding standards
 - ESLint + Prettier + Husky tooling so future code is consistent
 
-This phase **intentionally does not**:
+Phase 5 now additionally delivers:
+
+- Tailwind and PostCSS configuration
+- Motionly brand, neutral, typography, and font-family tokens
+- `ThemeProvider`, `useTheme`, and root `dark` class strategy
+- Motion duration/easing constants
+- A tokenized version of the honest app shell
+
+These phases **intentionally do not**:
 
 - Implement routing behavior (`src/router/`) — Phase 6
-- Implement the design system (`src/theme/`, Tailwind) — Phase 5
 - Implement components (`src/components/`) — Phase 8
 - Implement pages (`src/pages/`) — Phase 10+
 - Implement state management (`src/store/`) — Phase 29
 - Implement camera, TTS, storage, or notification adapters (`src/platform/`) — Phase 16+
 - Implement pose detection or exercise engines (`src/ml/`, `src/workers/`) — Phase 17+
-- Implement Supabase, auth, payments, analytics, notifications, i18n language packs, or design tokens — their respective phases
+- Implement Supabase, auth, payments, analytics, notifications, or i18n language packs — their respective phases
 
 Each folder's `README.md` repeats this rule in the context of that folder.
 

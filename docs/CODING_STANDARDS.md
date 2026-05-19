@@ -74,9 +74,12 @@ If two rules conflict, **`ARCHITECTURE.md` wins on structure, this file wins on 
 
 ## 7. Styling
 
-- **Until Phase 5 introduces Tailwind**, keep CSS minimal and scoped. The current `src/App.css` and `src/index.css` ship the honest shell — extend them only when necessary; do not start a parallel design system in Phase 4.
-- **No hardcoded design sprawl.** Avoid hex colors, arbitrary spacing values, and inline styles. Wait for Tailwind tokens.
-- **CSS variables are acceptable** as a temporary token bridge — see `src/index.css` (`--motionly-bg`, `--motionly-fg`, …) — but they are not the design system; Phase 5 owns that.
+- **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.
+- **Use theme tokens instead of hardcoded colors.** Hex values belong in `tailwind.config.ts`, generated/public assets, or documentation that explicitly describes the tokens. Application code should use classes such as `bg-motionly-bg-light`, `dark:bg-motionly-bg-dark`, `text-motionly-neutral-500`, and `text-motionly-primary`.
+- **Use the Phase 5 typography utilities.** Prefer `text-h1`, `text-h2`, `text-h3`, `text-body`, `text-label`, and `text-caption` over arbitrary font sizes.
+- **Keep spacing simple.** Use Tailwind's default spacing scale unless a later phase introduces a documented exception.
+- **Dark mode uses a class strategy.** `ThemeProvider` applies or removes the `dark` class on `document.documentElement`; components should use Tailwind `dark:` variants and must not implement their own theme toggling infrastructure.
+- **Do not invent component-level design systems before Phase 8.** No component kits, UI libraries, parallel token files, or reusable primitives should be introduced before the component-primitives phase asks for them.
 
 ---
 
