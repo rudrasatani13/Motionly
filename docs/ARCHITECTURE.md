@@ -62,6 +62,7 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/assets/`                | Static assets imported by application code (Vite-bundled).                            | Phase 5+ as needed             |
 | `src/components/`            | Shared, reusable UI primitives and composite components. Props in, JSX out.           | Phase 8 — Component primitives |
 | `src/components/primitives/` | Phase 8 reusable UI primitives (`Button`, `Input`, `Card`, …).                        | Phase 8 — Component primitives |
+| `src/components/feedback/`   | Phase 9 feedback / status / progress components (`CircularProgress`, `Toast`, …).     | Phase 9 — Feedback components  |
 | `src/components/routing/`    | Phase 6 routing-infrastructure components (`RoutePlaceholder`, …).                    | Phase 6 — Routing              |
 | `src/pages/`                 | Route-level screens. One file per top-level URL.                                      | Phase 10+                      |
 | `src/router/`                | React Router 6 config, guards, route params, navigation helpers, and routing layouts. | Phase 6 — Routing              |
@@ -79,7 +80,7 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/types/`                 | Cross-feature TypeScript domain types and ambient declarations.                       | As needed                      |
 | `src/workers/`               | Web Worker entry points (pose inference, heavy compute).                              | Phase 19                       |
 
-> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, and Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper. Product screens, state management, and feature logic remain deferred to their own phases.
+> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, and Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers. Product screens, state management, and feature logic remain deferred to their own phases.
 
 ---
 
@@ -221,13 +222,23 @@ Phase 8 now additionally delivers:
 - `clsx` and `lucide-react` added as production dependencies
 - [`docs/COMPONENTS.md`](./COMPONENTS.md) documenting the primitive library
 
-`src/components/routing/` remains the home of the Phase 6 routing-infrastructure components and is intentionally kept separate from `src/components/primitives/`.
+Phase 9 now additionally delivers:
+
+- Feedback / status / progress components under `src/components/feedback/` — `CircularProgress`, `LinearProgress`, `ScoreBadge`, `FormCueCard`, `RepCounter`, `WorkoutTimer`, `ToastProvider` / `ToastViewport` / `useToast`, `SkeletonLoader`, `EmptyState`, `ErrorBoundary`, `ConfidenceIndicator`
+- Barrel export `src/components/feedback/index.ts` and updated `src/components/index.ts`
+- Shared score helpers (`clampScore`, `clampProgress`, `scoreTone`) in `src/utils/score.ts`
+- Shared duration formatting (`formatDurationSeconds`, `formatDurationMs`) in `src/utils/formatDuration.ts`
+- `framer-motion` added as a production dependency
+- In-house Motionly-owned toast queue (no third-party toast library)
+- [`docs/COMPONENTS.md`](./COMPONENTS.md) §8 documenting the feedback library
+
+`src/components/routing/` remains the home of the Phase 6 routing-infrastructure components and is intentionally kept separate from `src/components/primitives/` and `src/components/feedback/`.
 
 These phases **intentionally do not**:
 
 - Implement product screens, fake data, or feature behavior on top of the Phase 6 routing skeleton. Phase 6 wires URLs and route guards only; real screens and real data still arrive in their own phases.
 - Implement product screens or data-backed UI on top of the Phase 8 primitive library. Phase 8 ships presentational primitives only — `Button`, `Input`, `Card`, `Avatar`, etc. — with no fake users, workouts, stats, AI feedback, streaks, or subscription state.
-- Implement Phase 9 feedback/status components (`CircularProgress`, `LinearProgress`, `ScoreBadge`, `FormCueCard`, `RepCounter`, `WorkoutTimer`, `Toast`, `SkeletonLoader`, `EmptyState`, `ErrorBoundary`, `ConfidenceIndicator`) — those wait for their phase and its animation/motion infrastructure.
+- Implement product screens or data-backed UI on top of the Phase 9 feedback library. Phase 9 ships presentational feedback / status / progress components only — `CircularProgress`, `LinearProgress`, `ScoreBadge`, `FormCueCard`, `RepCounter`, `WorkoutTimer`, `ToastProvider` / `useToast`, `SkeletonLoader`, `EmptyState`, `ErrorBoundary`, `ConfidenceIndicator` — with no internal score / rep / timer / confidence generation, no real ML outputs, no real workout data, no Web Push notifications, and no analytics.
 - Implement pages (`src/pages/`) — Phase 10+
 - Implement state management (`src/store/`) — Phase 29
 - Implement camera, TTS, storage, or notification adapters (`src/platform/`) beyond the Phase 8 `haptics.ts` helper — Phase 16+
@@ -366,6 +377,49 @@ Phase 8 adds Motionly's reusable UI primitives under `src/components/primitives/
 - **No hardcoded colors.** Primitives use Motionly Tailwind tokens (`bg-motionly-*`, `text-motionly-*`, `border-motionly-*`). Hex values stay in `tailwind.config.ts`.
 - **No fake data in primitives.** `Avatar` does not invent initials, `Badge` / `Chip` / `Tag` do not invent labels, and `Button` does not show fabricated success / progress messaging.
 - **Browser APIs go through `src/platform/`.** The `Button` triggers haptic feedback by calling `triggerLightHaptic()` from `@platform/haptics`, not `navigator.vibrate` directly.
+
+---
+
+## 10e. Feedback & Status Component Library (Phase 9)
+
+Phase 9 adds Motionly's feedback / status / progress components under `src/components/feedback/`. They compose Phase 8 primitives and ship with animation infrastructure (`framer-motion`) plus a Motionly-owned toast queue. The full inventory, when-to-use guide, data ownership rules, accessibility rules, and toast architecture live in [`COMPONENTS.md`](./COMPONENTS.md) §8.
+
+### Module map
+
+| File                                              | Responsibility                                                           |
+| ------------------------------------------------- | ------------------------------------------------------------------------ |
+| `src/components/feedback/CircularProgress.tsx`    | Animated SVG ring for form / session scores. Token-coded by `scoreTone`. |
+| `src/components/feedback/LinearProgress.tsx`      | Token-coded horizontal progress bar. Tailwind width transition.          |
+| `src/components/feedback/ScoreBadge.tsx`          | Compact color-coded numeric score for list rows / cards.                 |
+| `src/components/feedback/FormCueCard.tsx`         | Animated single-cue coaching card with `aria-live`.                      |
+| `src/components/feedback/RepCounter.tsx`          | Large rep number with scale-pulse on increment.                          |
+| `src/components/feedback/WorkoutTimer.tsx`        | Presentational `m:ss` / `h:mm:ss` clock readout.                         |
+| `src/components/feedback/Toast.tsx`               | `ToastProvider`, `ToastViewport`, `useToast` — in-house queue.           |
+| `src/components/feedback/SkeletonLoader.tsx`      | Token-aware async placeholder.                                           |
+| `src/components/feedback/EmptyState.tsx`          | Honest empty-state surface with illustration / CTA slots.                |
+| `src/components/feedback/ErrorBoundary.tsx`       | Render-error class component with retry fallback.                        |
+| `src/components/feedback/ConfidenceIndicator.tsx` | Camera / pose confidence banner.                                         |
+| `src/components/feedback/index.ts`                | Barrel export.                                                           |
+| `src/utils/score.ts`                              | `clampScore`, `clampProgress`, `scoreTone`, `SCORE_*` constants.         |
+| `src/utils/formatDuration.ts`                     | `formatDurationSeconds`, `formatDurationMs`.                             |
+
+### Rules
+
+- **Composition, not duplication.** Feedback components compose Phase 8 primitives (`Button`, `Card`, `Icon`) where it makes sense. They never re-implement primitive behavior.
+- **No fake values.** No feedback component generates its own score, progress, reps, time, cue, confidence rating, or toast. The future engines / stores supply real values.
+- **Tone mapping is centralized.** Scores always use `scoreTone` in `@utils/score`. New tone thresholds must update that helper, not inline ranges in components.
+- **Animations honor reduced motion.** Every animated component checks `useReducedMotion()` from Framer Motion or uses Tailwind `motion-reduce:*` so the experience degrades gracefully.
+- **Toast system is Motionly-owned.** No third-party toast dependency. Product code imports `useToast` / `ToastProvider` from `@components/feedback`; Phase 44 Web Push remains unimplemented.
+- **`ErrorBoundary` does not log externally.** Sentry / analytics wires are deferred to a later phase.
+- **No browser APIs leak in.** No `navigator.*` / `window.*` calls from feedback components (the toast viewport's `window.setTimeout` is allowed as a render-side scheduling concern, not a platform capability).
+
+### Boundary between primitives / feedback / routing components
+
+- **`primitives/`** — token-and-Tailwind UI atoms reused everywhere; no animation libraries.
+- **`feedback/`** — composite presentational components that need animation, progress semantics, or live regions, but still have **no business logic and no data of their own**.
+- **`routing/`** — components specific to the Phase 6 routing infrastructure; not meant to be reused outside layouts.
+
+A component graduates from `primitives/` to `feedback/` when it grows progress / live-region / animation responsibilities that the primitives intentionally avoid.
 
 ---
 

@@ -444,6 +444,21 @@ pnpm build           # Confirms the primitives bundle cleanly
 
 Two new dependencies were added: `clsx` (used through `@utils/cn`) and `lucide-react` (wrapped by `<Icon>`). No other package was introduced — the Phase 9 toast/progress libraries and any animation library land in their own phases.
 
+## 16f. Feedback & Status Component Library (Phase 9)
+
+Phase 9 added Motionly's feedback / status / progress components under `src/components/feedback/`. The full inventory, accessibility rules, and the data ownership rules are documented in [`./COMPONENTS.md`](./COMPONENTS.md) §8.
+
+No new commands are required for Phase 9 beyond the existing checks:
+
+```bash
+pnpm format:check    # Prettier verifies the new files
+pnpm lint            # ESLint surfaces unused vars / a11y issues
+pnpm typecheck       # Strict TS over the new components
+pnpm build           # Confirms the components bundle cleanly
+```
+
+One new dependency was added: `framer-motion` (drives the score-ring sweep, cue-card slide / fade, rep-counter pulse, toast and confidence-banner transitions, all gated by `prefers-reduced-motion`). The toast system is an in-house Motionly queue — no `react-hot-toast` or similar third-party dependency was added. Phase 44 Web Push notifications remain unimplemented.
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:
@@ -518,8 +533,11 @@ After install:
 │   ├── pages/                  # Honest skeleton route pages (Phase 6)
 │   ├── components/routing/     # RoutePlaceholder, BottomTabBar, status pill
 │   ├── components/primitives/  # Phase 8 primitive UI library
+│   ├── components/feedback/    # Phase 9 feedback / status / progress library
 │   ├── platform/haptics.ts     # Phase 8 haptics adapter (navigator.vibrate)
 │   ├── utils/cn.ts             # Phase 8 clsx-based class composer
+│   ├── utils/score.ts          # Phase 9 score / tone helpers
+│   ├── utils/formatDuration.ts # Phase 9 duration formatting helpers
 │   ├── sw-register.ts          # Workbox SW lifecycle helper
 │   └── vite-env.d.ts           # Vite / PWA ambient types
 └── docs/SETUP.md               # This file

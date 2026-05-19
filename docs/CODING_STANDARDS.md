@@ -109,6 +109,21 @@ Phase 8 introduced Motionly's reusable UI primitives under `src/components/primi
 
 ---
 
+## 6d. Feedback & Status Components (Phase 9)
+
+Phase 9 introduced the feedback / status / progress component library under `src/components/feedback/`. The full inventory and rules live in [`COMPONENTS.md`](./COMPONENTS.md) §8.
+
+- **Feedback components are presentational.** Do **not** fabricate, generate, or invent values inside them. Scores, progress percentages, rep counts, elapsed times, confidence ratings, cue messages, toast text, and empty-state copy must all come from the caller (a future engine / store / handler). If the caller has no real value yet, do not render the component.
+- **Keep numeric helpers centralized.** Score tone mapping lives in `@utils/score` (`clampScore`, `clampProgress`, `scoreTone`). Duration formatting lives in `@utils/formatDuration` (`formatDurationSeconds`, `formatDurationMs`). Do not inline thresholds or format strings in components — extend the helper.
+- **Compose Phase 8 primitives.** When a feedback component needs a button, card, text, icon, row, or column, import from `@components/primitives`. Do not rewrite or shadow primitives.
+- **Use `aria-live` carefully.** `assertive` interrupts the user — reserve it for mid-workout cues and errors. `polite` is the right default for rep counters, progress updates, and non-error toasts. Components that already provide a live region must not be wrapped in another one by the caller.
+- **Respect reduced motion.** Every animated feedback component honors `prefers-reduced-motion` via `useReducedMotion()` from `framer-motion` or Tailwind's `motion-reduce:*` utilities. New animated components must do the same.
+- **No medical / injury claims.** Cue copy, confidence messaging, toast text, and empty-state copy must follow Design Principle 6 — no "injury risk", "diagnosis", "treatment", or related vocabulary. Use coaching language only.
+- **Toasts are UI notifications.** `ToastProvider` / `useToast` is the only toast API. Do not import third-party toast libraries directly; do not conflate toasts with Web Push notifications (Phase 44 is separate and unimplemented).
+- **`ErrorBoundary` is local recovery.** It does not send errors to Sentry or any analytics service; do not add that integration as a side-effect of Phase 9.
+
+---
+
 ## 7. Styling
 
 - **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.

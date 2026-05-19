@@ -199,26 +199,153 @@ Phase 8, stop and revisit
 
 ---
 
-## 8. Intentionally Deferred to Phase 9 and Later
+## 8. Phase 9 — Feedback & Status Components
 
-The following components are explicitly **not** part of Phase 8 and
-must not be back-ported into the primitive library:
+Phase 9 adds the feedback / status / progress component library that
+the active-workout HUD, post-workout summary, progress screen, and any
+async product surface will depend on. The components live under
+`src/components/feedback/` and are barrel-exported from
+`@components/feedback` — keep that import path in product code so the
+intent reads clearly.
 
-- `CircularProgress` — animated SVG form-score ring (Phase 9).
-- `LinearProgress` — workout / rep progress bar (Phase 9).
-- `ScoreBadge` — color-coded numeric form score (Phase 9).
-- `FormCueCard` — animated coaching-cue card (Phase 9).
-- `RepCounter` — animated rep number (Phase 9).
-- `WorkoutTimer` — countdown / elapsed timer (Phase 9).
-- `Toast` — toast / notification queue (Phase 9).
-- `SkeletonLoader` — async placeholder (Phase 9).
-- `EmptyState` — first-session / no-data empty state (Phase 9).
-- `ErrorBoundary` — graceful error recovery wrapper (Phase 9).
-- `ConfidenceIndicator` — "camera view unclear" banner (Phase 9).
+### Inventory
 
-These belong to Phase 9 — Core UI Component Library: Feedback & Status
-Components. They land alongside the animation and motion infrastructure
-that those components need.
+| Component             | Module                                     | Use for                                                     |
+| --------------------- | ------------------------------------------ | ----------------------------------------------------------- |
+| `CircularProgress`    | `@components/feedback/CircularProgress`    | Animated SVG ring for form / session scores.                |
+| `LinearProgress`      | `@components/feedback/LinearProgress`      | Workout / rep / session progress bar.                       |
+| `ScoreBadge`          | `@components/feedback/ScoreBadge`          | Compact color-coded numeric score in lists and cards.       |
+| `FormCueCard`         | `@components/feedback/FormCueCard`         | Animated one-at-a-time coaching cue during active workouts. |
+| `RepCounter`          | `@components/feedback/RepCounter`          | Large animated rep number with scale pulse on increment.    |
+| `WorkoutTimer`        | `@components/feedback/WorkoutTimer`        | Presentational elapsed / countdown clock readout.           |
+| `ToastProvider`       | `@components/feedback/Toast`               | Motionly-owned toast queue + viewport.                      |
+| `useToast`            | `@components/feedback/Toast`               | Hook returning `show` / `dismiss` / `dismissAll`.           |
+| `SkeletonLoader`      | `@components/feedback/SkeletonLoader`      | Async loading placeholder with token-aware pulse.           |
+| `EmptyState`          | `@components/feedback/EmptyState`          | Honest "nothing here yet" surface with CTA slots.           |
+| `ErrorBoundary`       | `@components/feedback/ErrorBoundary`       | Render-error boundary with retry fallback.                  |
+| `ConfidenceIndicator` | `@components/feedback/ConfidenceIndicator` | "Camera view unclear" / low-confidence banner.              |
+
+`@components/feedback/index.ts` re-exports every component plus the
+public type aliases (`ScoreTone` lives in `@utils/score`,
+`ToastTone` / `FormCueTone` / `LinearProgressTone` ship from the
+component modules).
+
+The top-level barrel `@components` also re-exports the feedback
+components alongside the Phase 8 primitives and Phase 6 routing
+helpers. Prefer the subfolder barrel in product code so the import
+path documents intent.
+
+### Data ownership rules
+
+- **Components display passed props only.** No feedback component
+  generates its own score, progress, rep count, time, or confidence
+  rating. Real values must arrive from a future store / engine.
+- **No internal timers, intervals, or animations driven by fake data.**
+  `WorkoutTimer` formats whatever value the caller passes; it never
+  starts a `setInterval`. `RepCounter` pulses on prop change; it
+  never auto-increments.
+- **No fabricated copy.** `FormCueCard`, `Toast`, `EmptyState`,
+  `ConfidenceIndicator` carry only the message the caller supplies.
+- **Numbers are clamped, not invented.** `CircularProgress`,
+  `LinearProgress`, `ScoreBadge` clamp via `clampScore` /
+  `clampProgress` in `@utils/score` (range `0–100`). Non-finite inputs
+  collapse to `0` so the UI degrades safely.
+- **Tone mapping lives in `@utils/score`.** Components never inline
+  the thresholds. `scoreTone(value)` returns `'good' | 'warning' |
+'danger'` for `>= 80` / `50–79` / `< 50`.
+
+### When to use each component
+
+- **`CircularProgress`** — anchor of the post-workout summary and any
+  surface that wants the score to _feel_ like a result. Pass a real
+  numeric `value` and a meaningful `label`.
+- **`LinearProgress`** — set-of-set, rep-of-rep, free-tier-of-quota,
+  onboarding-step-of-N. Pick a `tone` based on what the bar
+  represents; defaults to `primary`.
+- **`ScoreBadge`** — list rows and dense summary cards where a full
+  ring would steal attention.
+- **`FormCueCard`** — exactly one rendered at a time, per Design
+  Principle 4. Replacement cues swap by passing a new `message`. Use
+  `ariaLive="assertive"` during active sets; `polite` elsewhere.
+- **`RepCounter`** — the active workout HUD's largest single element.
+  Set `animateOnChange={false}` if your caller updates the value
+  faster than the animation can complete.
+- **`WorkoutTimer`** — top HUD chip (`size="sm"`) and rest countdown
+  (`size="xl"`). Mode is informational; the caller decides whether
+  the value is increasing or decreasing.
+- **`ToastProvider` / `useToast`** — wrap the app root once. Call
+  `show({ tone, message })` from product code. `error` tone goes to
+  an `aria-live="assertive"` region; everything else is polite.
+- **`SkeletonLoader`** — render _the shape_ of upcoming content, not
+  a generic spinner. Use `shape="line"` with `lines={n}` for text
+  blocks; `shape="circle"` for avatars; `shape="card"` for cards.
+- **`EmptyState`** — "no workouts yet", "no progress yet". Title /
+  description must be honest; the CTA must perform the action that
+  fills the section.
+- **`ErrorBoundary`** — wrap a route, a panel, or a single risky
+  widget. The default fallback offers a reset button. Pass `onError`
+  if you need to log to a future in-house diagnostic (Phase 53);
+  Sentry / external logging is **not** wired up.
+- **`ConfidenceIndicator`** — only rendered when the caller has a
+  real confidence reading. `lost` becomes a `role="alert"`; all
+  other statuses are polite `role="status"`.
+
+### Accessibility rules
+
+- **Progressbar semantics.** `CircularProgress` and `LinearProgress`
+  expose `role="progressbar"` with `aria-valuemin=0`,
+  `aria-valuemax=100`, and a clamped `aria-valuenow`. Always supply
+  either a visible label or `aria-label`.
+- **`aria-live` discipline.** `FormCueCard` defaults to `polite`;
+  active-workout callers should set `assertive` so the cue is
+  announced during movement. `RepCounter` is `polite` so rep
+  announcements never preempt a form cue. `ConfidenceIndicator`
+  picks `assertive` only for the `lost` status. Toasts split the
+  viewport into a polite list and an assertive list.
+- **Color is never the only signal.** `ScoreBadge` always renders
+  the number; `CircularProgress` always renders the central value
+  (unless `showValue={false}`, which the caller must justify);
+  `ConfidenceIndicator` pairs every state with text + icon.
+- **Reduced motion.** Every animated component honors
+  `prefers-reduced-motion`. Rings fill instantly, cue cards skip the
+  slide, rep counters skip the scale pulse, toasts use opacity only,
+  skeleton loaders rely on Tailwind's `motion-reduce:animate-none`.
+- **ErrorBoundary fallback is a `role="alert"` region** so screen
+  readers announce render failures.
+
+### Toast architecture
+
+The toast system is an **in-house** Motionly implementation — there is
+no `react-hot-toast` dependency. `ToastProvider` owns:
+
+- The queue (`useState<Toast[]>`).
+- The auto-dismiss timers (`window.setTimeout` per toast).
+- The viewport, mounted at the bottom of the provider's subtree.
+
+Product code must:
+
+1. Wrap the app (or the relevant subtree) with `<ToastProvider>`.
+2. Use `useToast()` inside components. Never import a third-party
+   toast API directly.
+3. Treat toasts as UI notifications only. The Phase 44 Web Push
+   notification work is unrelated and is not implemented by this
+   system.
+
+### Intentionally deferred after Phase 9
+
+- **Real active-workout assembly** (Phase 27). The components exist;
+  the screen does not.
+- **Real ML outputs** — pose detection, joint angles, exercise
+  engines, form rules. Cues, scores, and confidence readings are
+  always caller-supplied today; no engine yet.
+- **Real workout progress data** — workout library, plans, history,
+  streaks all arrive in their own phases.
+- **Real analytics dashboards.** Charting libraries are **not**
+  introduced in Phase 9.
+- **Web Push notifications** (Phase 44). The toast system covers UI
+  notifications only.
+- **Dashboard / library / detail / camera / paywall product screens.**
+  Phase 9 builds the parts; later phases compose them into screens.
 
 ---
 
