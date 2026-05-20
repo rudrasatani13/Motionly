@@ -12,6 +12,16 @@ The highest-friction moment in the entire UX: helping a user prop their phone in
 
 **Phase 16 — Camera Permission & Setup Screen.**
 
+## Phase 16 implementation note
+
+Phase 16 deliberately diverges from the original ML-ready copy in this wireframe because real body/landmark detection starts in Phase 17. The implemented screen is honest about the signals it actually has:
+
+- Camera stream available.
+- Lighting check from local in-memory canvas brightness sampling.
+- Explicit user confirmation via **I'm lined up**.
+
+The silhouette overlay is a positioning guide, not a detector. It turns accent only when camera is active, lighting is good or manually accepted, and the user confirms alignment. It must not say "full body detected", show landmark counts, draw skeleton joints, or imply AI/pose detection is running.
+
 ## Entry points
 
 - `/permissions` → on grant → `/workout/:id/setup`.
@@ -19,14 +29,14 @@ The highest-friction moment in the entire UX: helping a user prop their phone in
 
 ## Exit points
 
-- "View is clear — Start!" CTA → `/workout/:id/active`.
+- "Continue to workout" CTA → `/workout/:id/active`.
 - Back → `/workouts/:id` (detail).
 - "Get help" link → expandable troubleshooting drawer (stays on this route).
 - Permission revoked mid-session (rare) → `/permissions`.
 
 ## Primary user action
 
-Adjust phone position and lighting until the silhouette turns green; then tap **Start**.
+Turn on the camera, adjust phone position and lighting, confirm **I'm lined up**, then tap **Continue to workout**.
 
 ## Secondary actions
 
@@ -46,8 +56,8 @@ Adjust phone position and lighting until the silhouette turns green; then tap **
 │           ┌─────────┐                │
 │           │   o     │                │  ← live camera feed (background)
 │           │  /|\\   │                │  ← silhouette overlay (SVG)
-│           │  / \\   │                │     white → green when full body
-│           └─────────┘                │     landmarks detected
+│           │  / \\   │                │     white → accent only after
+│           └─────────┘                │     user confirms setup
 │                                      │
 │                                      │
 │                                      │
@@ -58,9 +68,10 @@ Adjust phone position and lighting until the silhouette turns green; then tap **
 ├──────────────────────────────────────┤
 │  Step back so your whole body fits.  │  ← status line, text-body
 │                                      │
-│  ●○○  Body in frame                  │  ← checklist
-│  ●●○  Good lighting                  │
-│  ●●○  Phone steady                   │
+│  ✓    Camera on                      │  ← checklist
+│  ✓    Lighting okay                  │
+│  ○    Full body inside guide         │
+│  ○    Phone steady                   │
 │                                      │
 │  Tips ▾                              │  ← expandable
 │  ┌────────────────────────────────┐  │
@@ -73,38 +84,38 @@ Adjust phone position and lighting until the silhouette turns green; then tap **
 │  └────────────────────────────────┘  │
 │                                      │
 │  ┌────────────────────────────────┐  │
-│  │       View is clear — Start!    │  │  ← disabled until checks pass
+│  │       Continue to workout       │  │  ← disabled until checks pass
 │  └────────────────────────────────┘  │
 └──────────────────────────────────────┘
 ```
 
-The silhouette overlay rendering will be SVG over the `<video>` element, fed by future MediaPipe landmarks. None of that ML exists yet — the wireframe documents the layout, not the implementation.
+The Phase 16 silhouette overlay is SVG/CSS over the `<video>` element and is not fed by MediaPipe landmarks. Future MediaPipe wiring begins in Phase 17.
 
 ## Content rules
 
 - The single status line at the top of the controls section reflects the _current most important coaching cue_. Only one line at a time (Design Principle 4).
-- The checklist below has three items: body in frame, lighting, phone steady. Each shows progress (0 / 1 / 2 dots) so the user understands what changed.
+- The checklist below has manual/honest items: camera on, lighting okay, full body inside guide, phone steady. Body-in-frame and phone-steady are user-confirmed instructions until real detection/sensors exist.
 - Tips drawer collapses by default to avoid distracting the user from the live preview.
-- The CTA changes copy from "Adjusting…" → "Almost there…" → "View is clear — Start!" as the checks complete.
-- Voice guidance (Web Speech API) reads one short instruction at a time, with at least 2 seconds between utterances. Voice is opt-out (Phase 16 settings) — never silent-required.
+- The CTA copy is **Continue to workout**. Do not use "View is clear" until a real visual confidence system exists.
+- Voice instruction is optional and user-initiated in Phase 16. It reads one setup instruction via Web Speech when supported. The richer voice cue system is Phase 25.
 - No "5… 4… 3… 2… 1…" countdown after the CTA. The user taps Start when ready.
 
 ## Data requirements (future only)
 
-| Data point                 | Source (future)                      | Phase |
-| -------------------------- | ------------------------------------ | ----- |
-| Camera stream              | `camera-adapter.start()`             | 16    |
-| Landmark detection         | MediaPipe Pose Landmarker            | 17    |
-| Landmark count > threshold | Pose pipeline                        | 18    |
-| Frame brightness           | Canvas `getImageData` sampling       | 16    |
-| Phone steadiness           | Optional: DeviceMotion gyro variance | 16    |
+| Data point                 | Source (future)                | Phase |
+| -------------------------- | ------------------------------ | ----- |
+| Camera stream              | `camera-adapter.start()`       | 16    |
+| Landmark detection         | MediaPipe Pose Landmarker      | 17    |
+| Landmark count > threshold | Pose pipeline                  | 18    |
+| Frame brightness           | Canvas `getImageData` sampling | 16    |
+| Phone steadiness           | Manual instruction in Phase 16 | 16    |
 
 ## States to handle later
 
 - **Loading camera:** show camera-icon placeholder until the first frame paints; do not block input.
-- **Detecting:** silhouette stays white; status line guides the user step by step.
-- **Detection passes:** silhouette turns green; status line says "You're all set!"; CTA enables; gentle haptic via `navigator.vibrate(20)` once (Android only).
-- **Detection regresses (user steps out of frame):** silhouette returns to white; CTA disables; status line points to what broke.
+- **Setting up:** silhouette stays white; status line guides the user step by step.
+- **Setup readiness passes:** silhouette turns accent; CTA enables after camera active, lighting accepted, and user confirms alignment.
+- **Setup readiness regresses:** silhouette returns to white; CTA disables; status line points to what needs attention.
 - **Lighting too dark:** "Try moving to a brighter area."
 - **Lighting too bright / backlit:** "Move away from windows behind you."
 - **Camera busy / lost:** route back to `/permissions` with an explainer that another app released the camera.
@@ -122,14 +133,14 @@ The silhouette overlay rendering will be SVG over the `<video>` element, fed by 
 
 ## Privacy / safety notes
 
-- The live camera preview is on-screen but is **never** transmitted or stored. Frames go to the pose worker and the canvas, nothing else.
+- The live camera preview is on-screen but is **never** transmitted or stored. In Phase 16, frames are sampled only by the local lighting canvas. Pose workers arrive later.
 - The screen must not include any "record" or "save" affordance.
 - No screenshot of the camera preview is ever uploaded with crash reports — the crash-analytics layer must scrub the camera DOM element (Phase 53).
 
 ## Do not fake
 
-- Do not auto-pass the checks regardless of frame content. The detection states must reflect real landmark / brightness signals once Phase 17 lands. In Phase 6 / Phase 7, this screen is documentation only.
-- Do not show a fake silhouette overlay before the real ML wiring exists.
+- Do not auto-pass the checks regardless of frame content. Phase 16 readiness must reflect camera stream, local lighting, and user confirmation only.
+- Do not present the silhouette guide as real ML detection.
 - Do not display a fake "AI initialized" indicator.
 - Do not invent a "confidence score" line during setup — the score concept belongs to the active session and the form engine, not to setup.
 - Do not pre-record a "your body" silhouette image of a model and overlay it as if it were the user.

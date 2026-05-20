@@ -700,8 +700,8 @@ Manual checks:
 - Confirm **What you'll work** renders muscle chips from the detail data / exercise sequence.
 - Confirm **In this session** is an ordered list and the rows match the detail sequence: order, exercise name, sets x reps or time, rest seconds, target muscles, notes, and future-tense coaching preview.
 - Confirm **Coach's note** renders short safety / preparation copy and does not claim live camera or ML is active.
-- Tap **Start workout** on a free workout. The app should navigate to `/workout/:id/setup`, which remains the Phase 16 placeholder.
-- Confirm no browser camera prompt appears and no live camera preview appears.
+- Tap **Start workout** on a free workout. The app should navigate to `/workout/:id/setup`, which now renders the Phase 16 camera setup screen.
+- Confirm no browser camera prompt appears until the user taps **Turn on camera** on the setup screen.
 - Open `/workouts/not-real-id`. It should show **Workout not found** with a Back to Workout Library CTA.
 - Tap a locked / Pro workout from the library, or open `/workouts/hip-mobility-flow`; the primary action should route to `/paywall` with honest placeholder behavior. It must not implement subscription state.
 - Complete or update onboarding with a limitation such as knees or lower back, then open a conflicting workout such as `/workouts/lower-body-foundations` or `/workouts/quick-core-15`. A gentle limitation warning should appear.
@@ -709,7 +709,53 @@ Manual checks:
 - Confirm no fake stats, fake workout history, fake ratings, fake calories, fake popularity, fake form scores, fake reps, fake subscriptions, or fake AI feedback appear anywhere on the detail screen.
 - Toggle light and dark mode and confirm the page remains readable.
 - Check 5.0-inch and 6.7-inch mobile viewport sizes. The sticky action area should stay above the bottom navigation, and the bottom tab bar must remain reachable.
-- Confirm the dashboard and Workout Library still work after visiting detail, setup placeholder, not-found, and paywall placeholder routes.
+- Confirm the dashboard and Workout Library still work after visiting detail, setup, not-found, and paywall placeholder routes.
+
+---
+
+## 16m. Camera Setup Manual QA (Phase 16)
+
+Phase 16 replaces `/workout/:id/setup` with the real camera permission and setup screen. No new dependencies are added.
+
+```bash
+pnpm install
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm build
+pnpm dev
+```
+
+Manual checks:
+
+- Complete onboarding if needed, open `/workouts`, and choose a free workout detail.
+- Tap **Start workout**. `/workout/:id/setup` should render the real setup screen, not the old placeholder.
+- Confirm the page has one clear `h1`: **Set up your camera**.
+- Confirm no browser camera prompt appears on page load.
+- Confirm the privacy copy says the video stays on this device and Motionly does not upload or store the camera feed.
+- Tap **Turn on camera**. The browser permission prompt should appear from a user gesture only.
+- Grant permission. A live preview should appear in a `<video autoplay playsInline muted>` element, with a mirrored front-camera display.
+- Confirm no microphone prompt appears.
+- Confirm the silhouette/framing guide appears over the preview and says **Fit your full body inside the guide**.
+- Confirm the guide does not show skeleton joints, landmark dots, body confidence, or body-detected copy.
+- Confirm the lighting status starts checking and updates from the real video frame about every 500ms.
+- Cover the camera or use a dim room if practical; the lighting state should report **Try moving to a brighter area**.
+- Point toward a bright window if practical; the lighting state should report **Move away from bright windows behind you**.
+- Confirm **Looks clear enough** appears only as an explicit manual override when the camera preview is active and lighting needs attention or cannot be read.
+- Confirm **I'm lined up** is required before **Continue to workout** becomes enabled.
+- Confirm the readiness checklist uses honest/manual items: Camera on, Lighting okay, Full body inside guide, Phone steady.
+- Confirm **Play setup instruction** only speaks after tapping the button, or shows **Voice instruction unavailable on this browser** if unsupported.
+- Tap **Continue to workout** after readiness passes. The setup stream should stop and the app should navigate to `/workout/:id/active`, which remains the Phase 17+ placeholder.
+- Navigate away/back during an active preview via **Back to workout details** and confirm the browser camera indicator turns off.
+- Use **Continue without setup check** and confirm it routes to `/workout/:id/active` without claiming setup passed.
+- Deny permission in the browser prompt and confirm clear retry/settings guidance appears with **Try again** and **Permissions help**.
+- Test no-camera / unsupported path where practical by disabling the camera in browser/OS settings.
+- Test insecure context behavior where practical. Camera access requires HTTPS or localhost; plain LAN HTTP may be unavailable depending on browser security.
+- Confirm no MediaPipe dependency, model files, landmark detection, fake body detection, fake confidence scores, fake reps, fake form scores, fake calories, fake ratings, fake users, subscriptions, analytics, uploads, recordings, screenshots, or frame persistence were added.
+- Check light and dark mode.
+- Check 5.0-inch and 6.7-inch mobile viewport sizes. Controls should stay reachable and not cover the bottom tab bar.
+- Test Android Chrome on a real phone if available, especially camera prompt, live preview, cleanup, and performance.
+- Test iOS Safari if available, especially `playsInline`, speech user-gesture behavior, and stream cleanup.
 
 ---
 
@@ -784,14 +830,20 @@ After install:
 │   ├── hooks/useNavigation.ts  # Typed navigation wrapper (Phase 6)
 │   ├── theme/                  # ThemeProvider, useTheme, motion constants
 │   ├── router/                 # Route table, guards, layouts (Phase 6)
-│   ├── pages/                  # Honest skeleton route pages (Phase 6)
+│   ├── pages/                  # Route pages, including real dashboard/workout/detail/setup screens
 │   ├── components/routing/     # RoutePlaceholder, BottomTabBar, optional status pill
 │   ├── components/primitives/  # Phase 8 primitive UI library
 │   ├── components/feedback/    # Phase 9 feedback / status / progress library
+│   ├── components/camera-setup/ # Phase 16 camera setup composites
 │   ├── platform/haptics.ts     # Phase 8 haptics adapter (navigator.vibrate)
+│   ├── platform/camera-permission.ts # Phase 12 permission-primer adapter
+│   ├── platform/camera-stream.ts # Phase 16 live setup stream adapter
+│   ├── platform/camera-lighting.ts # Phase 16 local canvas lighting sampler
+│   ├── platform/speech.ts      # Phase 16 optional setup speech adapter
 │   ├── utils/cn.ts             # Phase 8 clsx-based class composer
 │   ├── utils/score.ts          # Phase 9 score / tone helpers
 │   ├── utils/formatDuration.ts # Phase 9 duration formatting helpers
+│   ├── utils/camera-lighting.ts # Phase 16 brightness helpers
 │   ├── sw-register.ts          # Workbox SW lifecycle helper
 │   └── vite-env.d.ts           # Vite / PWA ambient types
 └── docs/SETUP.md               # This file
@@ -824,9 +876,9 @@ After install:
 
 Per `MOTIONLY_MASTER_PLAN.md`, the following are still deferred to their own phases. Do **not** add any of these until their phase is active:
 
-- Workout library, workout detail, workout history, and programmed plans (Phases 14–15, 28, 33)
-- Live camera setup / preview, MediaPipe, pose detection, exercise engines (Phases 16–24)
-- Voice feedback, skeleton overlay (Phases 25–26)
+- Workout history and programmed plans (Phases 28, 33)
+- MediaPipe, pose detection, landmarks, skeleton overlay, and exercise engines (Phases 17–26)
+- Voice feedback system beyond the one user-initiated setup instruction (Phase 25)
 - Durable cross-feature state management and the full IndexedDB storage adapter (Phases 29–30)
 - Supabase backend, authentication (Phases 31–32)
 - Stripe / Razorpay, paywall, free-tier limits (Phases 36–38)
@@ -836,7 +888,7 @@ Per `MOTIONLY_MASTER_PLAN.md`, the following are still deferred to their own pha
 
 > Phase 11 is complete for onboarding screens 1–3. Phase 12 completed screens 4–5 and local onboarding persistence. Real Supabase session rehydration and real protected redirect rules are still deferred to their own phases.
 
-> Phase 12 is complete: all five onboarding screens render, limitations select correctly with mutually-exclusive "None" behavior, the optional note is capped at 120 characters, the camera permission is requested only after the user taps the CTA, every media track is stopped immediately, and onboarding completion writes `hasOnboarded = true` plus a minimal record to IndexedDB before navigating to Home `/`. Phase 13 renders the real dashboard. Phase 14 ships the real Workout Library at `/workouts` (Workouts tab, Exercises tab, filters, debounced search, locked-content badges, exercise quick-detail panel) backed by a canonical static MVP catalog. Live camera preview, ML, real workout sessions, Supabase, auth, payments, and analytics remain deferred.
+> Phase 16 is complete: free workout detail pages route to a real camera setup screen with user-initiated live preview, local lighting check, silhouette guide, placement instructions, manual alignment confirmation, stream cleanup, and handoff to the active placeholder. MediaPipe, landmark/body detection, skeleton overlay, active workout UI, rep counting, form scoring, real workout sessions, Supabase, auth, payments, and analytics remain deferred.
 
 ## 22. Phase 2 Success Checklist
 

@@ -20,9 +20,9 @@ Intentional divergences from the early wireframe:
 
 - Limitation warnings do **not** claim Motionly has added a gentler variation yet. Phase 15 only informs the user and suggests moving slowly, reducing range, skipping uncomfortable movements, or choosing another workout.
 - Exercise rows are a preview list in Phase 15. A deeper exercise-detail route or modal can land later.
-- Start Workout routes to `/workout/:id/setup`, which remains the Phase 16 placeholder. Phase 15 does not request camera permission, open a live camera preview, or start an active workout.
+- Start Workout routes to `/workout/:id/setup`. Phase 15 itself does not request camera permission, open a live camera preview, or start an active workout.
 
-Full camera permission, live setup, silhouette guidance, and any camera/ML checks remain Phase 16 and later.
+Phase 16 now implements the camera setup screen. Body/landmark detection and active workout behavior remain Phase 17+.
 
 ## Entry points
 
@@ -32,7 +32,7 @@ Full camera permission, live setup, silhouette guidance, and any camera/ML check
 
 ## Exit points
 
-- "Start workout" CTA → `/workout/:id/setup` (Phase 16 camera setup placeholder in Phase 15).
+- "Start workout" CTA → `/workout/:id/setup` (Phase 16 camera setup screen).
 - Back navigation → previous screen (library or dashboard).
 - Tap an exercise row → exercise detail (modal or push, Phase 14 / 15 decision).
 - Limitation conflict banner CTA → swap to an alternative workout (Phase 34+).

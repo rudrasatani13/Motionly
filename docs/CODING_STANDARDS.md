@@ -206,6 +206,19 @@ Phase 15 replaces `/workouts/:id` with the real pre-workout detail screen. It is
 - **Start Workout is only a route handoff.** From a free workout detail page, the CTA may navigate to `/workout/:id/setup`, but it must not call camera APIs, request permission, create a session record, write workout history, start timers, or route to `/workout/:id/active`.
 - **Locked Pro workouts stay structural.** `accessTier: 'pro'` is content metadata only. Route to `/paywall` with honest toast copy; do not read or invent subscription state.
 
+## 6k. Camera Permission & Setup Screen (Phase 16)
+
+Phase 16 replaces `/workout/:id/setup` with the real pre-workout camera setup screen. It is camera setup only: no pose inference, no landmark detection, no active workout session, and no generated coaching outputs.
+
+- **Camera calls stay in `src/platform/`.** The live setup stream must be requested only through `src/platform/camera-stream.ts`. Product code may attach the returned stream to a `<video>`, but it must not call `navigator.mediaDevices.getUserMedia` directly.
+- **No microphone or audio capture.** Camera setup requests video only. Do not add audio constraints, microphone permission, `MediaRecorder`, screenshots, recording, upload, or video persistence.
+- **Stop tracks on cleanup.** Any flow that leaves, retries, cancels, skips, errors, or continues from setup must call the stream cleanup helper and clear the video element's `srcObject`.
+- **No fake body detection.** Do not show copy such as "full body detected", "landmarks detected", "skeleton ready", "AI sees you", "view is clear", confidence scores, skeleton joints, landmark dots, or body-detected states until real ML lands in Phase 17+.
+- **Silhouette is a positioning guide.** The overlay may guide the user and change tone only from honest setup conditions: camera active, lighting accepted, and explicit user confirmation.
+- **Lighting checks are local-only.** The only allowed frame analysis in Phase 16 is in-memory canvas brightness sampling for lighting. Do not store pixels, write frames to IndexedDB/localStorage, or send them anywhere.
+- **Manual gates must be explicit.** Alignment and manual lighting override are user actions. The app must not silently auto-pass setup based on no ML signal.
+- **Active workout remains later.** Continue from setup may route to `/workout/:id/active`, but it must not create session state, start timers, count reps, score form, or implement the active workout UI.
+
 ---
 
 ## 7. Styling

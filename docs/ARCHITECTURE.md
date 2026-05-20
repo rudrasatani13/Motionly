@@ -67,6 +67,7 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/components/dashboard/`       | Phase 13 dashboard cards, header, quick-start, stats, and empty states.                                                                                               | Phase 13 — Dashboard screen    |
 | `src/components/workout-library/` | Phase 14 workout library composites — header, tab switcher, filter chips, workout/exercise cards, locked-content badge, empty state, and exercise quick-detail panel. | Phase 14 — Workout Library     |
 | `src/components/workout-detail/`  | Phase 15 workout detail / pre-workout composites — hero, meta, muscles, sequence preview, coach note, limitation warning, actions, loading, and not-found states.     | Phase 15 — Workout Detail      |
+| `src/components/camera-setup/`    | Phase 16 camera setup composites — live preview, silhouette guide, placement instructions, lighting status, checklist, error state, and actions.                      | Phase 16 — Camera Setup        |
 | `src/components/launch/`          | Phase 10 launch UI — animated `LaunchScreen` + SW update prompt hook.                                                                                                 | Phase 10 — Splash & launch     |
 | `src/components/onboarding/`      | Phase 11–12 onboarding flow components (welcome, goal, fitness level, limitations, camera tutorial).                                                                  | Phase 11–12 — Onboarding       |
 | `src/components/routing/`         | Phase 6 routing-infrastructure components (`RoutePlaceholder`, …).                                                                                                    | Phase 6 — Routing              |
@@ -87,7 +88,7 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/types/`                      | Cross-feature TypeScript domain types and ambient declarations.                                                                                                       | As needed                      |
 | `src/workers/`                    | Web Worker entry points (pose inference, heavy compute).                                                                                                              | Phase 19                       |
 
-> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers, Phase 10 the launch layer, Phase 11 the first in-memory onboarding store plus screens 1–3, Phase 12 onboarding completion storage, and Phase 13 the Home dashboard. Phase 14 adds the real Workout Library — `src/types/workout-library.ts` (domain types), `src/data/workout-library.ts` (canonical static catalog), `src/utils/workout-library.ts` (pure filter/search/sort helpers), `src/hooks/useDebouncedValue.ts` (generic debounce), and `src/components/workout-library/` (header, tab switcher, filter chips, workout/exercise cards, locked-content badge, empty state, and exercise quick-detail panel). Phase 15 extends that catalog with workout detail sequences, adds `src/utils/workout-limitations.ts`, `src/hooks/useWorkoutDetailData.ts`, and `src/components/workout-detail/` for the real pre-workout screen. Remaining product screens, durable cross-feature persistence, and feature logic still land in their own phases.
+> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers, Phase 10 the launch layer, Phase 11 the first in-memory onboarding store plus screens 1–3, Phase 12 onboarding completion storage, and Phase 13 the Home dashboard. Phase 14 adds the real Workout Library — `src/types/workout-library.ts` (domain types), `src/data/workout-library.ts` (canonical static catalog), `src/utils/workout-library.ts` (pure filter/search/sort helpers), `src/hooks/useDebouncedValue.ts` (generic debounce), and `src/components/workout-library/` (header, tab switcher, filter chips, workout/exercise cards, locked-content badge, empty state, and exercise quick-detail panel). Phase 15 extends that catalog with workout detail sequences, adds `src/utils/workout-limitations.ts`, `src/hooks/useWorkoutDetailData.ts`, and `src/components/workout-detail/` for the real pre-workout screen. Phase 16 adds `src/types/camera-setup.ts`, `src/platform/camera-stream.ts`, `src/platform/camera-lighting.ts`, `src/platform/speech.ts`, `src/utils/camera-lighting.ts`, `src/hooks/useCameraLightingCheck.ts`, and `src/components/camera-setup/` for the live setup flow. Remaining product screens, durable cross-feature persistence, ML/pose detection, and feature logic still land in their own phases.
 
 ---
 
@@ -177,6 +178,8 @@ If you find yourself reaching for `navigator.*`, `window.*`, `document.*`, `loca
 **Phase 10 onboarding-storage adapter:** `src/platform/onboarding-storage.ts` exposes the read-only `readHasOnboarded()` so the launch gate has a single chokepoint for the `hasOnboarded` flag. It tries to open the future `motionly` IndexedDB database without creating it; if the database / store / key is missing — or if anything errors — it resolves to `false`. **Phase 12** extended the same adapter with a write path (`completeOnboardingStorage()`) that creates the database / store on demand and persists `hasOnboarded = true` plus a minimal completion record. Phase 30 will replace this small adapter with the real storage layer.
 
 **Phase 12 camera-permission adapter:** `src/platform/camera-permission.ts` is the only Phase 12 caller of `navigator.mediaDevices.getUserMedia`. `requestCameraPermissionForOnboarding()` asks for video only, stops every track immediately after permission resolves, and returns a tagged `granted | denied | unavailable | error` result so callers stay declarative. No stream, frame, preview, recording, or upload ever leaves the adapter. Live preview, silhouette detection, and pose inference belong to later camera / ML phases — Phase 12 deliberately stops at the permission prompt.
+
+**Phase 16 camera setup adapters:** `src/platform/camera-stream.ts` is the only Phase 16 module that requests the live workout setup stream. It requests video only (`facingMode: user`, ideal `640x480`), never requests audio or microphone access, returns typed granted / denied / unavailable / error results, and exposes `stopCameraStream()` so callers stop tracks on unmount, route change, cancel, retry replacement, skip, continue, and error recovery. `src/platform/camera-lighting.ts` owns the browser-only canvas sampling used by the local lighting check; it samples a tiny in-memory frame and never stores, uploads, records, or persists video data. `src/platform/speech.ts` owns the optional, user-initiated Web Speech setup instruction and does not implement the Phase 25 voice-cue system.
 
 ---
 
@@ -622,14 +625,44 @@ Phase 15 replaces the `/workouts/:id` placeholder with a real pre-workout detail
 
 - **Static canonical content only.** Workout details are authored product content in `src/data/workout-library.ts`; they do not contain completion counts, calories, ratings, popularity, form scores, history, sessions, or generated coaching results.
 - **Real limitations only.** Limitation warnings render only when `readOnboardingCompletion()` returns a real Phase 12 record with matching limitation areas. Missing storage, malformed data, empty limitations, or `none` all show no personalized warning.
-- **Start Workout handoff only.** Free workouts navigate to `/workout/:id/setup`, which remains the Phase 16 placeholder. Phase 15 does not request camera permission, open a live preview, create a workout session, or route to the active workout screen.
+- **Start Workout handoff only.** Free workouts navigate to `/workout/:id/setup`. Phase 15 itself does not request camera permission, open a live preview, create a workout session, or route directly to the active workout screen.
 - **Locked content stays structural.** `accessTier: 'pro'` is catalog metadata, not real subscription state. Locked workouts route to `/paywall` with honest toast copy; payment/subscription logic remains deferred.
 
 ### Deferred to later phases
 
-- Camera permission and setup UI — Phase 16.
-- Live camera preview, pose detection, active workout, rep counting, form scoring, and voice cues — Phase 16+.
+- Camera permission and setup UI — implemented in Phase 16.
+- Pose detection, active workout, rep counting, form scoring, and voice cues — Phase 17+.
 - Workout session records, history, analytics, Supabase/auth, and real subscription state — later phases.
+
+## 10l. Camera Permission & Setup Screen (Phase 16)
+
+Phase 16 replaces `/workout/:id/setup` with the real camera setup flow for free workouts. It is still pre-ML: no pose landmarks, body detection, skeleton overlay, confidence score, rep counting, form scoring, or active workout UI exists yet.
+
+### Files
+
+| Path                                    | Responsibility                                                                                                             |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `src/types/camera-setup.ts`             | UI-friendly camera stream, lighting, readiness, facing-mode, and setup-error types. No pose / landmark / confidence types. |
+| `src/platform/camera-stream.ts`         | Live setup stream adapter; the Phase 16 `getUserMedia` chokepoint for video-only `640x480` user-facing camera requests.    |
+| `src/platform/camera-lighting.ts`       | Browser canvas sampler for local in-memory frame brightness analysis.                                                      |
+| `src/platform/speech.ts`                | Optional user-initiated Web Speech setup instruction.                                                                      |
+| `src/utils/camera-lighting.ts`          | Pure brightness averaging and conservative lighting classification helpers.                                                |
+| `src/hooks/useCameraLightingCheck.ts`   | React interval orchestration for 500ms lighting checks while the live preview is active.                                   |
+| `src/components/camera-setup/`          | Presentational setup composites for preview, guide, instructions, lighting card, checklist, error state, and actions.      |
+| `src/pages/workout/CameraSetupPage.tsx` | Route orchestration: resolve workout, request camera after CTA, own stream cleanup, gate readiness, route to active.       |
+
+### Responsibilities
+
+- **User-initiated camera access.** `/workout/:id/setup` does not prompt on load. Free workouts show `Turn on camera`; locked Pro workouts do not start the camera and route to `/paywall` with honest copy.
+- **Temporary UI-only stream.** The setup page owns the live `MediaStream`, attaches it to `<video autoplay playsInline muted>`, mirrors the user-facing preview, and stops tracks before unmount, retry replacement, back, skip, continue, or permission-help navigation. No stream is passed through router state.
+- **Lighting is real and local.** The lighting hook samples the current video frame every 500ms through an in-memory canvas and computes average brightness. It can report checking, good, too dark, too bright, or error. Canvas/browser failures are non-blocking and can be manually accepted only by explicit user action.
+- **Silhouette is a guide only.** The SVG overlay helps positioning. It turns accent only when the camera is active, lighting is acceptable or manually accepted, and the user taps `I'm lined up`. It is not body detection.
+- **Readiness is honest.** Continue is enabled only when the camera stream is active, lighting is good or manually accepted, and the user confirms full-body alignment. The checklist labels phone steadiness as manual instruction, not sensor output.
+- **Active route handoff only.** Continue stops the setup stream and navigates to `/workout/:id/active`, which remains the Phase 17+ placeholder. No session records, timers, history, inference, or workout state are created.
+
+### Deferred to later phases
+
+- MediaPipe, model files, pose landmarks, skeleton overlay, body-detected states, confidence scores, rep counting, form scoring, active workout HUD, workout session persistence, history, analytics, Supabase/auth, payments, subscriptions, and backend logic.
 
 ---
 

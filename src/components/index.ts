@@ -4,6 +4,7 @@
  * Re-exports:
  * - `./primitives/*` — Phase 8 reusable UI primitives.
  * - `./feedback/*`   — Phase 9 feedback / status / progress components.
+ * - `./camera-setup/*` — Phase 16 camera setup composites.
  * - `./dashboard/*`  — Phase 13 dashboard composite components.
  * - `./routing/*`    — Phase 6 routing infrastructure components.
  *
@@ -16,6 +17,7 @@
 
 export * from './primitives';
 export * from './feedback';
+export * from './camera-setup';
 export * from './dashboard';
 export { BottomTabBar } from './routing/BottomTabBar';
 export { RoutePlaceholder } from './routing/RoutePlaceholder';

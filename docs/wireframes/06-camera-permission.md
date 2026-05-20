@@ -21,6 +21,17 @@ The "return-to" target is tracked via navigation state, not a query parameter (P
 
 **Phase 16 — Camera Permission & Setup Screen.**
 
+## Phase 16 implementation note
+
+Phase 16 implemented the live pre-workout setup flow directly on `/workout/:id/setup` rather than building a full standalone `/permissions` settings screen. The existing `/permissions` route remains a placeholder and may be linked from denied/error states for lightweight help.
+
+Intentional scope boundary:
+
+- The setup route requests the live stream only after the user taps **Turn on camera**.
+- `src/platform/camera-stream.ts` is separate from the Phase 12 onboarding primer in `src/platform/camera-permission.ts`.
+- The live stream is video-only, temporary, UI-only, and stopped on cleanup.
+- No microphone, recording, screenshots, upload, storage, MediaPipe, landmarks, body detection, or skeleton overlay exists in Phase 16.
+
 ## Entry points
 
 - Step 5 of onboarding ("Set up camera" CTA).

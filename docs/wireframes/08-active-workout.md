@@ -12,9 +12,13 @@ The center of Motionly. The screen the user spends 80% of their session time on.
 
 **Phase 17** (MediaPipe), **Phases 18–24** (pose pipeline, angle math, exercise engines), **Phase 25** (voice), **Phase 26** (skeleton overlay), and **Phase 27** (full assembly).
 
+## Phase 16 handoff note
+
+Phase 16 routes to `/workout/:id/active` after the user completes or skips camera setup, but this active route remains an honest placeholder. The setup screen stops its camera stream before navigation and does not pass a stream through router state, create a workout session, start timers, run inference, count reps, or render an active workout HUD.
+
 ## Entry points
 
-- `/workout/:id/setup` → "View is clear — Start!" CTA → here.
+- `/workout/:id/setup` → "Continue to workout" CTA → here.
 - Resume from a paused session (Phase 27): re-enter at the same exercise/set/rep.
 
 ## Exit points
