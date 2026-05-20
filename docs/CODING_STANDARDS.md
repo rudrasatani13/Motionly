@@ -221,6 +221,25 @@ Phase 16 replaces `/workout/:id/setup` with the real pre-workout camera setup sc
 
 ---
 
+## 6l. MediaPipe Pose Landmarker Integration (Phase 17)
+
+Phase 17 introduces real on-device pose inference for `/workout/:id/active`, but only as the ML foundation — no exercise coaching, no rep counting, no form scoring, no session/history writes are allowed.
+
+- **No fake landmarks.** If MediaPipe returns an empty landmark array, render the honest "no-pose" state. Do not synthesize dots, fall back to a default skeleton, or animate fake limbs.
+- **No fake pose confidence.** Never derive or display a `0–100` "confidence" or "AI accuracy" score in Phase 17. Visibility values are only what MediaPipe returns. Phase 18 owns the confidence-filter abstraction.
+- **No fake body detection.** Phase 17 does not declare "full body detected", "form ready", "AI is watching", or similar before downstream phases compute those signals from real data.
+- **No form feedback or AI coaching.** No `FormCueCard`, "Good form!", "Knees over toes!", "Lower your hips!", or "completed!" UI may render based on Phase 17 landmark output. Those depend on Phase 19+ angle math and Phase 20+ exercise engines.
+- **No rep counting.** The 33 landmarks are not turned into a rep counter, set counter, workout timer, or workout completion at any point in Phase 17.
+- **No landmark persistence.** Do not write landmarks, world landmarks, frame ids, FPS samples, or model load timings into `localStorage`, IndexedDB, Supabase, or any analytics surface. The Zustand pose store retains only the most recent frame in memory.
+- **No video / frame storage or upload.** Phase 17 never records, exports, encodes, or transmits camera frames. The `MediaStream` is video-only and lives only while the active page is mounted.
+- **MediaPipe calls live in `src/ml/pose/`.** `@mediapipe/tasks-vision` may only be imported from `src/ml/pose/PoseLandmarker.ts` (and Phase 17+ helpers in the same folder). UI, pages, hooks, and stores consume Motionly's own `PoseFrame` / `PoseDetectionResult` types.
+- **Camera calls still live in `src/platform/`.** Active route camera access goes through the existing `src/platform/camera-stream.ts` chokepoint. Do not call `navigator.mediaDevices.getUserMedia` from pages, hooks, or ML modules.
+- **Model & WASM URLs must stay app-local.** Models load from `/models/*.task` and WASM loads from `/mediapipe-wasm/*`. Do not silently swap to a remote CDN; the service worker depends on those paths for offline behavior.
+- **One inference per frame.** Use `requestAnimationFrame` and skip frames with no new `video.currentTime`. Do not run `detectForVideo` on a synthetic timer at faster-than-display rates.
+- **Clean lifecycle.** Camera tracks must be stopped and `PoseLandmarker.close()` must be called on unmount, navigation, stop, and error recovery. Streams must not be stored globally or passed through router state.
+
+---
+
 ## 7. Styling
 
 - **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.

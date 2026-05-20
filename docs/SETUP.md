@@ -745,17 +745,46 @@ Manual checks:
 - Confirm **I'm lined up** is required before **Continue to workout** becomes enabled.
 - Confirm the readiness checklist uses honest/manual items: Camera on, Lighting okay, Full body inside guide, Phone steady.
 - Confirm **Play setup instruction** only speaks after tapping the button, or shows **Voice instruction unavailable on this browser** if unsupported.
-- Tap **Continue to workout** after readiness passes. The setup stream should stop and the app should navigate to `/workout/:id/active`, which remains the Phase 17+ placeholder.
+- Tap **Continue to workout** after readiness passes. The setup stream should stop and the app should navigate to `/workout/:id/active`, which now renders the Phase 17 pose-debug shell.
 - Navigate away/back during an active preview via **Back to workout details** and confirm the browser camera indicator turns off.
 - Use **Continue without setup check** and confirm it routes to `/workout/:id/active` without claiming setup passed.
 - Deny permission in the browser prompt and confirm clear retry/settings guidance appears with **Try again** and **Permissions help**.
 - Test no-camera / unsupported path where practical by disabling the camera in browser/OS settings.
 - Test insecure context behavior where practical. Camera access requires HTTPS or localhost; plain LAN HTTP may be unavailable depending on browser security.
-- Confirm no MediaPipe dependency, model files, landmark detection, fake body detection, fake confidence scores, fake reps, fake form scores, fake calories, fake ratings, fake users, subscriptions, analytics, uploads, recordings, screenshots, or frame persistence were added.
+- Confirm no fake body detection, fake confidence scores, fake reps, fake form scores, fake calories, fake ratings, fake users, subscriptions, analytics, uploads, recordings, screenshots, or frame persistence were added.
 - Check light and dark mode.
 - Check 5.0-inch and 6.7-inch mobile viewport sizes. Controls should stay reachable and not cover the bottom tab bar.
 - Test Android Chrome on a real phone if available, especially camera prompt, live preview, cleanup, and performance.
 - Test iOS Safari if available, especially `playsInline`, speech user-gesture behavior, and stream cleanup.
+
+---
+
+## 16n. MediaPipe Pose Landmarker Manual QA (Phase 17)
+
+Phase 17 makes `/workout/:id/active` a minimal pose-debug shell that runs real MediaPipe Pose Landmarker inference. New dependency: `@mediapipe/tasks-vision`. New static assets: `public/models/pose_landmarker_lite.task`, `public/models/pose_landmarker_full.task`. New runtime asset: `/mediapipe-wasm/*` served by the `motionlyMediaPipeWasm` Vite plugin in dev and emitted into `dist/mediapipe-wasm/` at build.
+
+- Run `pnpm install` and confirm `@mediapipe/tasks-vision` appears in `node_modules/@mediapipe/tasks-vision/`.
+- Confirm `public/models/pose_landmarker_lite.task` and `public/models/pose_landmarker_full.task` exist on disk and are real MediaPipe model files (multiple MB each, not zero-byte placeholders).
+- Run `pnpm build` and confirm `dist/models/` contains both `.task` files **and** `dist/mediapipe-wasm/` contains `vision_wasm_internal.js/.wasm` (plus the module and `nosimd` variants).
+- Run `pnpm preview`, open `/`, complete onboarding if needed, open `/workouts`, open a free workout detail page, tap **Start workout**, complete the Phase 16 setup, and **Continue to workout**. The active route should render the Phase 17 pose-debug shell (workout name + Phase 17 scope text + camera-off card + Pose debug panel), not the old placeholder.
+- Confirm the active page does **not** request camera access on load. Only the **Start pose debug** CTA should prompt.
+- Tap **Start pose debug**, grant the browser camera prompt, and confirm the live preview appears, the **Loading MediaPipe Pose Landmarker…** card surfaces briefly, and the **Pose debug** panel transitions from `Idle` → `Loading model…` → `Ready` → `Running` (or `No pose detected` if nobody is in frame).
+- Stand fully in frame and confirm: landmark count reads `33 / 33`, FPS and inference ms in the **Performance** card update each frame, and (with the overlay enabled) real dots appear over the body — never invented dots if MediaPipe returned an empty result.
+- Step out of frame and confirm the status switches to `No pose detected` without rendering ghost landmarks.
+- Tap **Log current landmarks** with a body in frame and confirm one informative `console.info` entry appears in DevTools with frame id, timestamp, total landmark count, and a sample of the first five named landmarks. Do not expect per-frame log spam.
+- Toggle **Show landmark overlay** / **Hide landmark overlay** and confirm the SVG dots show/hide.
+- Tap **Stop pose debug** and confirm: inference stops, the camera indicator turns off, the panel returns to `Idle`, the **Performance** card stats reset, and there is no lingering `MediaStream` (check `navigator.mediaDevices` indicator if visible).
+- Navigate to **Back to setup** and **Back to workout detail** during an active session and confirm the camera indicator turns off and inference stops.
+- Test the denied / unavailable camera paths and confirm the active page shows the **Camera unavailable** card with `Try again` / `Back to setup` controls.
+- Test missing model: temporarily rename `public/models/pose_landmarker_lite.task` (after the preview build) and confirm the **Pose debug** panel renders an honest `model fetch failed` / `model missing` error and the **Loading MediaPipe Pose Landmarker…** card does not get stuck.
+- Test the GPU → CPU fallback if your device's GPU delegate cannot initialize: the **Model & delegate** card should display `CPU (WASM fallback)` and a transparent fallback note. Force CPU by editing `pose-model-config.ts` locally if you cannot reproduce naturally.
+- Test offline once the model has been cached. After the first successful load, go offline (DevTools → Network → Offline), reload, and reopen the active route. The model should re-initialize without a network round-trip via the `motionly-models` + `motionly-mediapipe-wasm` caches.
+- Let the active page run inference for ~10 minutes on a real device and confirm no crash, no significant memory growth, and stable FPS.
+- Confirm: no rep counter, no workout timer, no form score, no calories, no cues, no completion summary, no workout history write, no fake AI feedback, and no upload/persisted frames appear anywhere in the active route.
+- Check light and dark mode.
+- Check 5.0-inch and 6.7-inch mobile viewport sizes. Controls and the bottom nav must remain reachable.
+- Test Android Chrome on a real phone if available (GPU delegate; FPS target ≥ 20 on a Redmi-class device).
+- Test iOS Safari if available (delegate may fall back; FPS target ≥ 24 on iPhone 12).
 
 ---
 
@@ -820,7 +849,7 @@ After install:
 │   ├── Motionly.png            # 1024×1024 brand source (not precached)
 │   ├── motionly-mark-light.png # 1024×1024 light brand source (not precached)
 │   ├── motionly-mark-light-192.png # Light-mode app-shell mark
-│   ├── models/                 # reserved for ML models (Phase 17)
+│   ├── models/                 # Phase 17 MediaPipe Pose Landmarker .task files
 │   └── audio/cues/             # reserved for voice cues (Phase 25)
 ├── src/
 │   ├── main.tsx                # React entry, SW registration
@@ -828,18 +857,23 @@ After install:
 │   ├── index.css               # Tailwind directives + global base styles
 │   ├── hooks/useTheme.ts       # Public theme hook re-export
 │   ├── hooks/useNavigation.ts  # Typed navigation wrapper (Phase 6)
+│   ├── hooks/usePoseLandmarker.ts # Phase 17 inference loop hook
 │   ├── theme/                  # ThemeProvider, useTheme, motion constants
 │   ├── router/                 # Route table, guards, layouts (Phase 6)
-│   ├── pages/                  # Route pages, including real dashboard/workout/detail/setup screens
+│   ├── pages/                  # Route pages, including real dashboard/workout/detail/setup/active screens
 │   ├── components/routing/     # RoutePlaceholder, BottomTabBar, optional status pill
 │   ├── components/primitives/  # Phase 8 primitive UI library
 │   ├── components/feedback/    # Phase 9 feedback / status / progress library
 │   ├── components/camera-setup/ # Phase 16 camera setup composites
+│   ├── components/pose-debug/  # Phase 17 pose-debug UI (panel, status, FPS, model, overlay)
+│   ├── ml/pose/                # Phase 17 MediaPipe wrapper, config, landmark constants
 │   ├── platform/haptics.ts     # Phase 8 haptics adapter (navigator.vibrate)
 │   ├── platform/camera-permission.ts # Phase 12 permission-primer adapter
 │   ├── platform/camera-stream.ts # Phase 16 live setup stream adapter
 │   ├── platform/camera-lighting.ts # Phase 16 local canvas lighting sampler
 │   ├── platform/speech.ts      # Phase 16 optional setup speech adapter
+│   ├── store/usePoseStore.ts   # Phase 17 latest-frame pose store
+│   ├── types/pose.ts           # Phase 17 pose domain types
 │   ├── utils/cn.ts             # Phase 8 clsx-based class composer
 │   ├── utils/score.ts          # Phase 9 score / tone helpers
 │   ├── utils/formatDuration.ts # Phase 9 duration formatting helpers
@@ -877,7 +911,7 @@ After install:
 Per `MOTIONLY_MASTER_PLAN.md`, the following are still deferred to their own phases. Do **not** add any of these until their phase is active:
 
 - Workout history and programmed plans (Phases 28, 33)
-- MediaPipe, pose detection, landmarks, skeleton overlay, and exercise engines (Phases 17–26)
+- Landmark smoothing, joint angle math, exercise engines, rep counting, form scoring, and active workout coaching (Phases 18–26)
 - Voice feedback system beyond the one user-initiated setup instruction (Phase 25)
 - Durable cross-feature state management and the full IndexedDB storage adapter (Phases 29–30)
 - Supabase backend, authentication (Phases 31–32)
@@ -888,7 +922,9 @@ Per `MOTIONLY_MASTER_PLAN.md`, the following are still deferred to their own pha
 
 > Phase 11 is complete for onboarding screens 1–3. Phase 12 completed screens 4–5 and local onboarding persistence. Real Supabase session rehydration and real protected redirect rules are still deferred to their own phases.
 
-> Phase 16 is complete: free workout detail pages route to a real camera setup screen with user-initiated live preview, local lighting check, silhouette guide, placement instructions, manual alignment confirmation, stream cleanup, and handoff to the active placeholder. MediaPipe, landmark/body detection, skeleton overlay, active workout UI, rep counting, form scoring, real workout sessions, Supabase, auth, payments, and analytics remain deferred.
+> Phase 16 is complete: free workout detail pages route to a real camera setup screen with user-initiated live preview, local lighting check, silhouette guide, placement instructions, manual alignment confirmation, stream cleanup, and handoff to the active route.
+
+> Phase 17 is complete: `@mediapipe/tasks-vision` is installed, `public/models/pose_landmarker_lite.task` and `pose_landmarker_full.task` ship in-tree, the Tasks-Vision WASM fileset is served app-locally from `/mediapipe-wasm/`, and `/workout/:id/active` now runs real on-device MediaPipe Pose Landmarker inference with a live landmark debug overlay, FPS / inference stats, model + delegate status (GPU → CPU fallback honest), and clean lifecycle. Smoothing, joint angles, rep counting, form scoring, coaching, session history, Supabase/auth/payments, and analytics remain deferred to later phases.
 
 ## 22. Phase 2 Success Checklist
 

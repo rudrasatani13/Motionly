@@ -14,7 +14,22 @@ The center of Motionly. The screen the user spends 80% of their session time on.
 
 ## Phase 16 handoff note
 
-Phase 16 routes to `/workout/:id/active` after the user completes or skips camera setup, but this active route remains an honest placeholder. The setup screen stops its camera stream before navigation and does not pass a stream through router state, create a workout session, start timers, run inference, count reps, or render an active workout HUD.
+Phase 16 routes to `/workout/:id/active` after the user completes or skips camera setup. The setup screen stops its camera stream before navigation and does not pass a stream through router state, create a workout session, start timers, run inference, count reps, or render an active workout HUD.
+
+## Phase 17 implementation note
+
+Phase 17 replaces the placeholder with a **minimal pose-debug shell** — not the final HUD described above. The active route now:
+
+- Reads the workout id and resolves the workout from the canonical catalog.
+- Renders an honest "this is pose debug, not full coaching yet" header.
+- Requests the camera through `src/platform/camera-stream.ts` only after a user-initiated **Start pose debug** CTA.
+- Initializes MediaPipe Pose Landmarker via the `src/ml/pose/PoseLandmarker.ts` wrapper (lite model by default, GPU → CPU fallback).
+- Runs `requestAnimationFrame` inference at most once per frame and feeds the latest `PoseFrame` into a tiny Zustand pose store.
+- Shows a live mirrored `<video>` preview with an optional debug-only landmark overlay (real MediaPipe dots — never invented).
+- Surfaces an honest `PoseDebugPanel` with inference status (`idle` / `loading-model` / `ready` / `running` / `no-pose` / `error`), 33-landmark count, FPS, last/average inference ms, model file, delegate, and recent errors.
+- Stops the camera and disposes the MediaPipe task on stop, unmount, route change, and error recovery.
+
+What Phase 17 **still does not** render on this route: rep counter, workout timer as a live session clock, form score, form cue card, "AI feedback", set/exercise progress, completion summary, calories, workout history writes, and voice coaching. All of those land in Phases 18–27. The debug overlay is debug-only and must not be confused with the final skeleton overlay.
 
 ## Entry points
 

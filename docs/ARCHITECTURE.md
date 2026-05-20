@@ -68,6 +68,7 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/components/workout-library/` | Phase 14 workout library composites — header, tab switcher, filter chips, workout/exercise cards, locked-content badge, empty state, and exercise quick-detail panel. | Phase 14 — Workout Library     |
 | `src/components/workout-detail/`  | Phase 15 workout detail / pre-workout composites — hero, meta, muscles, sequence preview, coach note, limitation warning, actions, loading, and not-found states.     | Phase 15 — Workout Detail      |
 | `src/components/camera-setup/`    | Phase 16 camera setup composites — live preview, silhouette guide, placement instructions, lighting status, checklist, error state, and actions.                      | Phase 16 — Camera Setup        |
+| `src/components/pose-debug/`      | Phase 17 pose-debug UI — `PoseDebugPanel`, `PoseLandmarkStatus`, `PoseFpsBadge`, `PoseModelStatusCard`, `PoseLandmarkOverlay`. Debug-only; no rep/score/form output.  | Phase 17 — MediaPipe Pose      |
 | `src/components/launch/`          | Phase 10 launch UI — animated `LaunchScreen` + SW update prompt hook.                                                                                                 | Phase 10 — Splash & launch     |
 | `src/components/onboarding/`      | Phase 11–12 onboarding flow components (welcome, goal, fitness level, limitations, camera tutorial).                                                                  | Phase 11–12 — Onboarding       |
 | `src/components/routing/`         | Phase 6 routing-infrastructure components (`RoutePlaceholder`, …).                                                                                                    | Phase 6 — Routing              |
@@ -96,17 +97,18 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 
 Files in `public/` are reachable by **URL** in the browser. The build copies them as-is to `dist/`.
 
-| Path                                                     | Purpose                                                                                    |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `public/favicon.svg`, `favicon.ico`, `favicon-96x96.png` | Tab icons.                                                                                 |
-| `public/favicon-light-96x96.png`                         | Light-mode tab icon selected by `ThemeProvider`.                                           |
-| `public/apple-touch-icon.png`                            | iOS home-screen icon (180×180).                                                            |
-| `public/web-app-manifest-192x192.png` / `512x512.png`    | Installable PWA icons (`any` and `maskable`).                                              |
-| `public/Motionly.png`                                    | 1024×1024 brand source. Excluded from precache via `workbox.globIgnores`.                  |
-| `public/motionly-mark-light.png`                         | 1024×1024 light-mode brand source. Excluded from precache via `workbox.globIgnores`.       |
-| `public/motionly-mark-light-192.png`                     | Light-mode app-shell mark.                                                                 |
-| `public/models/`                                         | **Reserved (Phase 17).** MediaPipe model files. Cached `CacheFirst` by the service worker. |
-| `public/audio/cues/`                                     | **Reserved (Phase 25).** Voice cue audio. Cached `CacheFirst` by the service worker.       |
+| Path                                                     | Purpose                                                                                                                                                                                                                            |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `public/favicon.svg`, `favicon.ico`, `favicon-96x96.png` | Tab icons.                                                                                                                                                                                                                         |
+| `public/favicon-light-96x96.png`                         | Light-mode tab icon selected by `ThemeProvider`.                                                                                                                                                                                   |
+| `public/apple-touch-icon.png`                            | iOS home-screen icon (180×180).                                                                                                                                                                                                    |
+| `public/web-app-manifest-192x192.png` / `512x512.png`    | Installable PWA icons (`any` and `maskable`).                                                                                                                                                                                      |
+| `public/Motionly.png`                                    | 1024×1024 brand source. Excluded from precache via `workbox.globIgnores`.                                                                                                                                                          |
+| `public/motionly-mark-light.png`                         | 1024×1024 light-mode brand source. Excluded from precache via `workbox.globIgnores`.                                                                                                                                               |
+| `public/motionly-mark-light-192.png`                     | Light-mode app-shell mark.                                                                                                                                                                                                         |
+| `public/models/`                                         | **Phase 17.** MediaPipe Pose Landmarker `.task` files. Served from `/models/`; cached `CacheFirst` by the service worker.                                                                                                          |
+| `public/audio/cues/`                                     | **Reserved (Phase 25).** Voice cue audio. Cached `CacheFirst` by the service worker.                                                                                                                                               |
+| `/mediapipe-wasm/` _(virtual)_                           | **Phase 17.** Tasks-Vision WASM fileset, served by the `motionlyMediaPipeWasm` Vite plugin from `node_modules/@mediapipe/tasks-vision/wasm/` in dev and emitted into `dist/mediapipe-wasm/` at build. Runtime-cached `CacheFirst`. |
 
 Anything that needs to be imported by JS/TS at build time belongs in `src/assets/` instead.
 
@@ -663,6 +665,51 @@ Phase 16 replaces `/workout/:id/setup` with the real camera setup flow for free 
 ### Deferred to later phases
 
 - MediaPipe, model files, pose landmarks, skeleton overlay, body-detected states, confidence scores, rep counting, form scoring, active workout HUD, workout session persistence, history, analytics, Supabase/auth, payments, subscriptions, and backend logic.
+
+---
+
+## 10m. MediaPipe Pose Landmarker Integration (Phase 17)
+
+Phase 17 makes `/workout/:id/active` the minimal pose-debug shell that runs real MediaPipe Pose Landmarker inference. It is the ML foundation only — no smoothing, joint angles, rep counting, form scoring, coaching, or session/history writes ship in this phase.
+
+### Files
+
+| Path                                      | Responsibility                                                                                                                             |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `public/models/pose_landmarker_lite.task` | Official MediaPipe lite Pose Landmarker model (default).                                                                                   |
+| `public/models/pose_landmarker_full.task` | Official MediaPipe full Pose Landmarker model (optional, higher accuracy).                                                                 |
+| `src/types/pose.ts`                       | Cross-feature pose domain types: `PoseLandmark`, `PoseFrame`, `PoseInferenceStatus`, `PoseInferenceError`, `PoseInferenceStats`, etc.      |
+| `src/ml/pose/landmark-names.ts`           | 33-point MediaPipe Pose Landmarker name → index map plus `POSE_LANDMARK_COUNT` and key body indices.                                       |
+| `src/ml/pose/pose-model-config.ts`        | Model URLs, default variant, delegate preference, MediaPipe confidence thresholds, WASM base path.                                         |
+| `src/ml/pose/PoseLandmarker.ts`           | Single MediaPipe Tasks-Vision boundary in the app. Owns `FilesetResolver`, `createFromOptions`, `detectForVideo`, GPU/CPU fallback, close. |
+| `src/hooks/usePoseLandmarker.ts`          | React hook that owns the `requestAnimationFrame` inference loop, FPS / timing stats, and clean teardown.                                   |
+| `src/store/usePoseStore.ts`               | Zustand store holding only the latest `PoseFrame`, status, stats, model variant, delegate, and recoverable error. No history, no playback. |
+| `src/components/pose-debug/`              | Debug-only UI: `PoseDebugPanel`, `PoseLandmarkStatus`, `PoseFpsBadge`, `PoseModelStatusCard`, `PoseLandmarkOverlay`.                       |
+| `src/pages/workout/ActiveWorkoutPage.tsx` | Minimal active-route shell: camera lifecycle, model lifecycle, live preview, debug overlay, debug panel, navigation, no fake state.        |
+| `vite.config.ts → motionlyMediaPipeWasm`  | Vite plugin that serves and emits the Tasks-Vision WASM fileset under `/mediapipe-wasm/` so production never hits a remote CDN.            |
+
+### Responsibilities
+
+- **Single MediaPipe boundary.** `@mediapipe/tasks-vision` is imported in exactly one file (`src/ml/pose/PoseLandmarker.ts`). UI, hooks, stores, and pages consume Motionly's own `PoseFrame` / `PoseDetectionResult` types so vendor symbols do not leak.
+- **User-initiated inference.** The active page does not request camera access or load the model on mount. The "Start pose debug" CTA triggers `requestCameraStreamForSetup('user')` (the Phase 16 platform chokepoint) and then `usePoseLandmarker.start()`.
+- **One detection per animation frame.** The inference loop checks `video.currentTime` and skips frames with no new data so MediaPipe never sees duplicate timestamps. It measures rolling FPS, last/average inference ms, and frames skipped — all from real observations.
+- **GPU first, CPU fallback.** The wrapper requests `delegate: GPU` and transparently retries with `CPU` if GPU initialization fails. The UI surfaces the fallback honestly via `PoseModelStatusCard`.
+- **Local-only WASM.** The Tasks-Vision WASM fileset ships from `/mediapipe-wasm/` (served via dev middleware and copied into `dist/` by the custom Vite plugin) so production stays on-origin and the service-worker `/mediapipe-wasm/` `CacheFirst` rule actually caches the bytes.
+- **Worker boundary (deferred).** Phase 17 keeps inference on the main thread but isolates it behind `MotionlyPoseLandmarker` + `usePoseLandmarker`. Moving to a Web Worker + `OffscreenCanvas` later requires swapping those two files, not rewriting consumers. The boundary, abstraction, and TODO are intentional.
+
+### Privacy and honesty rules (Phase 17)
+
+- No raw frames, landmarks, or world landmarks are stored beyond the latest `PoseFrame`.
+- No video, image, landmark, or stats data is uploaded, persisted, or transmitted anywhere.
+- No fake landmarks, fake confidence scores, fake landmark counts, fake FPS, or fake "AI feedback" exist anywhere in the pose pipeline. If MediaPipe returned an empty result, the UI renders the honest "no-pose" state instead of inventing dots.
+
+### Deferred to later phases
+
+- Phase 18 smoothing / normalization / confidence filtering.
+- Phase 19 joint angle math.
+- Phase 20 squat state machine and rep counting.
+- Workout session records, timers, history, summary screens, calories, form scoring, voice coaching, analytics, Supabase/auth, payments, and subscriptions.
+- Web Worker + `OffscreenCanvas` inference. The Phase 17 boundary is designed to make this swap clean.
 
 ---
 
