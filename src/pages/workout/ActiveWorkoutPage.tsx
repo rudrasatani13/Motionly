@@ -4,7 +4,7 @@ import { ArrowLeft, Camera, Lock, Square } from 'lucide-react';
 
 import { findWorkoutDetailById } from '@/data/workout-library';
 import { EmptyState, SkeletonLoader, useToast } from '@components/feedback';
-import { PoseDebugPanel, PoseLandmarkOverlay } from '@components/pose-debug';
+import { PoseDebugPanel, PoseLandmarkOverlay, type PoseOverlayMode } from '@components/pose-debug';
 import { Button, Card, Column, Icon, Row, Text } from '@components/primitives';
 import { WorkoutNotFoundState } from '@components/workout-detail';
 import { useNavigation } from '@hooks/useNavigation';
@@ -42,6 +42,7 @@ export default function ActiveWorkoutPage(): JSX.Element {
   const [streamError, setStreamError] = useState<CameraSetupError | null>(null);
   const [facingMode, setFacingMode] = useState<CameraFacingMode>('user');
   const [overlayEnabled, setOverlayEnabled] = useState(true);
+  const [overlayMode, setOverlayMode] = useState<PoseOverlayMode>('raw');
 
   const pose = usePoseLandmarker();
   const cameraActive = streamStatus === 'granted' && isCameraStreamActive(stream);
@@ -243,15 +244,16 @@ export default function ActiveWorkoutPage(): JSX.Element {
     >
       <Column gap="xs">
         <Text variant="caption" tone="muted">
-          Active workout · Phase 17 pose debug
+          Active workout · Phase 18 pose debug
         </Text>
         <Text variant="h1" as="h1" id="active-workout-heading">
           {workout.name}
         </Text>
         <Text tone="muted">
-          This screen runs real on-device MediaPipe Pose Landmarker inference and shows the live
-          landmark stream. Rep counting, form scoring, and coaching land in later phases — nothing
-          on this page is fabricated.
+          This screen runs real on-device MediaPipe Pose Landmarker inference and processes each
+          frame through Phase 18 smoothing, confidence filtering, and torso-scale normalization.
+          Phase 18 processes landmarks for stability before angle and rep logic. No reps, form
+          scores, or coaching are generated yet — nothing on this page is fabricated.
         </Text>
       </Column>
 
@@ -286,7 +288,12 @@ export default function ActiveWorkoutPage(): JSX.Element {
                 }
               />
               {overlayEnabled ? (
-                <PoseLandmarkOverlay frame={pose.latestFrame} mirror={facingMode === 'user'} />
+                <PoseLandmarkOverlay
+                  frame={pose.latestFrame}
+                  processedFrame={pose.latestProcessedFrame}
+                  mode={overlayMode}
+                  mirror={facingMode === 'user'}
+                />
               ) : null}
             </>
           )}
@@ -380,17 +387,24 @@ export default function ActiveWorkoutPage(): JSX.Element {
         status={pose.status}
         stats={pose.stats}
         latestFrame={pose.latestFrame}
+        latestProcessedFrame={pose.latestProcessedFrame}
+        processingStats={pose.processingStats}
+        visibilityReport={pose.visibilityReport}
+        bodyVisibilityStatus={pose.bodyVisibilityStatus}
+        processingConfig={pose.processingConfig}
         error={pose.error}
         modelVariant={pose.modelVariant}
         delegate={pose.delegate}
         overlayEnabled={overlayEnabled}
+        overlayMode={overlayMode}
         onToggleOverlay={() => setOverlayEnabled((current) => !current)}
+        onChangeOverlayMode={setOverlayMode}
       />
 
       <Text variant="caption" tone="muted">
-        Phase 17 scope reminder: no rep counter, no form score, no calories, no workout timer, no
-        completion summary, and no workout history are produced on this screen. Those features
-        arrive in Phases 18+
+        Phase 18 scope reminder: no rep counter, no form score, no calories, no workout timer, no
+        completion summary, and no workout history are produced on this screen. Joint angles arrive
+        in Phase 19; rep counting in Phase 20; form scoring and coaching in later phases
         {poseRunning ? '. Pose inference is currently active.' : '.'}
       </Text>
     </section>

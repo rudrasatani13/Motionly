@@ -1,31 +1,42 @@
 /**
- * Phase 17 — Pose inference Zustand store.
+ * Phase 17 + 18 — Pose inference + processing Zustand store.
  *
  * Holds **only**:
- * - The latest emitted `PoseFrame` (or `null`).
+ * - The latest emitted raw `PoseFrame` (or `null`).
+ * - The latest `ProcessedPoseFrame` from the Phase 18 pipeline.
  * - The current high-level inference status.
- * - Live performance stats (FPS, last/average inference ms).
+ * - Live inference performance stats (FPS, last/average inference ms).
+ * - Live Phase 18 processing stats (smoothing/filtering/normalization
+ *   timings, processed/dropped frame counts).
+ * - The latest Phase 18 visibility report (mean/key visibility).
+ * - The current Phase 18 processing config.
  * - The active model variant and delegate.
  * - The most recent recoverable error.
  *
- * It deliberately does **not** keep landmark history, rep state,
- * smoothed/normalized landmarks, joint angles, form scores, calories,
- * workout session records, or anything that would create the false
- * impression of a real workout session in Phase 17.
+ * It deliberately does **not** keep landmark history, rep state, joint
+ * angles, form scores, calories, workout session records, or anything
+ * that would create the false impression of a real workout session.
  *
- * Persistence: none. Phase 17 keeps everything in memory and resets
+ * Persistence: none. The store keeps everything in memory and resets
  * on unmount. No localStorage, no IndexedDB, no network sync.
  */
 
 import { create } from 'zustand';
 
+import { DEFAULT_POSE_PROCESSING_CONFIG } from '@ml/pose/pose-processing-config';
+import { EMPTY_PROCESSING_STATS } from '@ml/pose/processPoseFrame';
 import type {
+  BodyVisibilityStatus,
   PoseDelegate,
   PoseFrame,
   PoseInferenceError,
   PoseInferenceStats,
   PoseInferenceStatus,
   PoseModelVariant,
+  PoseProcessingConfig,
+  PoseProcessingStats,
+  PoseVisibilityReport,
+  ProcessedPoseFrame,
 } from '@/types/pose';
 
 const EMPTY_STATS: PoseInferenceStats = {
@@ -37,10 +48,25 @@ const EMPTY_STATS: PoseInferenceStats = {
   modelLoadMs: null,
 };
 
+const EMPTY_VISIBILITY_REPORT: PoseVisibilityReport = {
+  bodyVisibilityScore: 0,
+  isBodyFullyVisible: false,
+  visibleLandmarkCount: 0,
+  evaluatedLandmarkCount: 0,
+  occludedKeyLandmarks: [],
+  occludedLandmarks: [],
+  keyLandmarkVisibility: [],
+};
+
 export type PoseStoreState = {
   status: PoseInferenceStatus;
   latestFrame: PoseFrame | null;
+  latestProcessedFrame: ProcessedPoseFrame | null;
   stats: PoseInferenceStats;
+  processingStats: PoseProcessingStats;
+  visibilityReport: PoseVisibilityReport;
+  bodyVisibilityStatus: BodyVisibilityStatus;
+  processingConfig: PoseProcessingConfig;
   error: PoseInferenceError | null;
   modelVariant: PoseModelVariant | null;
   delegate: PoseDelegate | null;
@@ -49,7 +75,12 @@ export type PoseStoreState = {
 export type PoseStoreActions = {
   setStatus: (status: PoseInferenceStatus) => void;
   setLatestFrame: (frame: PoseFrame | null) => void;
+  setLatestProcessedFrame: (frame: ProcessedPoseFrame | null) => void;
   setStats: (stats: PoseInferenceStats) => void;
+  setProcessingStats: (stats: PoseProcessingStats) => void;
+  setVisibilityReport: (report: PoseVisibilityReport) => void;
+  setBodyVisibilityStatus: (status: BodyVisibilityStatus) => void;
+  setProcessingConfig: (config: PoseProcessingConfig) => void;
   setError: (error: PoseInferenceError | null) => void;
   setModelVariant: (variant: PoseModelVariant | null) => void;
   setDelegate: (delegate: PoseDelegate | null) => void;
@@ -61,7 +92,12 @@ export type PoseStore = PoseStoreState & PoseStoreActions;
 const initialState: PoseStoreState = {
   status: 'idle',
   latestFrame: null,
+  latestProcessedFrame: null,
   stats: EMPTY_STATS,
+  processingStats: { ...EMPTY_PROCESSING_STATS },
+  visibilityReport: EMPTY_VISIBILITY_REPORT,
+  bodyVisibilityStatus: 'unknown',
+  processingConfig: { ...DEFAULT_POSE_PROCESSING_CONFIG },
   error: null,
   modelVariant: null,
   delegate: null,
@@ -78,8 +114,28 @@ export const usePoseStore = create<PoseStore>((set) => ({
     set({ latestFrame: frame });
   },
 
+  setLatestProcessedFrame: (frame) => {
+    set({ latestProcessedFrame: frame });
+  },
+
   setStats: (stats) => {
     set({ stats });
+  },
+
+  setProcessingStats: (processingStats) => {
+    set({ processingStats });
+  },
+
+  setVisibilityReport: (visibilityReport) => {
+    set({ visibilityReport });
+  },
+
+  setBodyVisibilityStatus: (bodyVisibilityStatus) => {
+    set({ bodyVisibilityStatus });
+  },
+
+  setProcessingConfig: (processingConfig) => {
+    set({ processingConfig });
   },
 
   setError: (error) => {
@@ -95,6 +151,9 @@ export const usePoseStore = create<PoseStore>((set) => ({
   },
 
   resetPoseState: () => {
-    set(initialState);
+    set({
+      ...initialState,
+      processingConfig: { ...DEFAULT_POSE_PROCESSING_CONFIG },
+    });
   },
 }));

@@ -240,6 +240,26 @@ Phase 17 introduces real on-device pose inference for `/workout/:id/active`, but
 
 ---
 
+## 6m. Landmark Data Pipeline & Smoothing (Phase 18)
+
+Phase 18 inserts a smoothing / confidence-filter / torso-scale-normalization layer between raw MediaPipe output and the still-deferred angle / rep / form logic. The same rules that kept Phase 17 honest apply here, plus a handful of pipeline-specific ones.
+
+- **No fake processed landmarks.** Never invent smoothed coordinates for missing landmarks. If MediaPipe did not return 33 landmarks, the smoother resets and the processor emits `processed: null`. Do not pad a missing landmark with the previous frame's coordinates.
+- **No fake confidence.** Visibility / presence values pass through unchanged. The Phase 18 filter only restates what MediaPipe reported. Never derive or display a 0–100 "AI accuracy" or "form confidence" score in Phase 18.
+- **No fake body visibility.** `isBodyFullyVisible` is `true` only when every configured key landmark cleared the per-landmark threshold. Do not claim "fully visible" from the mean score alone.
+- **Smoothing must reset on no-pose.** `LandmarkSmoother.reset()` must be called on no-pose / partial-pose / model restart / camera stop / inference stop / unmount. Stale EMA state must never bleed into a later detected frame.
+- **Normalization must fail safely.** When the four torso landmarks (left/right hip, left/right shoulder) are missing, occluded below threshold, or yield a too-small / non-finite torso scale, the normalizer returns a tagged failure (`no-landmarks`, `key-landmarks-occluded`, `invalid-torso-scale`, `numeric-instability`). Do not invent normalized values.
+- **No angle calculations until Phase 19.** Do not compute joint angles, trunk angle, knee valgus, or bilateral symmetry in Phase 18 — even as a "quick preview".
+- **No reps, scores, or cues until later phases.** Phase 18 must not increment rep counters, score form, throttle cues, render `FormCueCard`, write workout sessions, or start workout timers.
+- **No pose history persistence.** The pose store keeps only the latest raw frame and the latest processed frame, in memory. No `localStorage`, no IndexedDB, no Supabase, no analytics, no file writes, no network calls per frame, no unbounded arrays.
+- **No new dependencies.** Phase 18 uses plain TypeScript math. Do not add math, pose, charting, analytics, or state libraries.
+- **No per-frame side effects.** No per-frame `console.log` / `console.info`, no per-frame toasts, no per-frame DOM writes outside the React render path. Timing measurements via `performance.now()` are the only allowed per-frame side effect.
+- **Mutation discipline.** Do not mutate the raw `PoseFrame.landmarks` array. Create a new `ProcessedPoseLandmark[]` per frame.
+- **Single processor per session.** The hook owns one `PoseFrameProcessor` per inference session. Do not create a new processor per frame — that would disable smoothing.
+- **Processing overhead target.** Aim for less than 2 ms per frame total pipeline overhead. The Phase 18 debug surface flags above-target frames in a warning tone — do not silence the signal.
+
+---
+
 ## 7. Styling
 
 - **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.

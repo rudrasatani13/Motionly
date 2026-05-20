@@ -1,5 +1,5 @@
 /**
- * Phase 17 — Pose domain types.
+ * Phase 17 + 18 — Pose domain types.
  *
  * Cross-feature public types for the MediaPipe Pose Landmarker
  * integration. UI components, hooks, and stores depend on these
@@ -10,8 +10,17 @@
  * Phase 17 scope:
  * - Real MediaPipe landmark output (33 points) flowing into UI for
  *   debug rendering, plus FPS / inference timing stats.
- * - No smoothing, no normalization, no joint-angle math, no rep
- *   detection, no form scoring, no session/history records.
+ *
+ * Phase 18 scope:
+ * - Add processed-frame types alongside the raw types: smoothed +
+ *   normalized landmarks, per-landmark visibility, a structured
+ *   visibility report, normalization metadata, processing config /
+ *   stats, and a `ProcessedPoseFrame` envelope.
+ *
+ * Phase 18 still does NOT introduce:
+ * - Joint angle types (Phase 19).
+ * - Rep state / exercise state machines (Phase 20+).
+ * - Form scores or coaching cues.
  */
 
 /**
@@ -133,4 +142,208 @@ export type PoseDetectionResult = {
   /** Empty array means MediaPipe returned no pose for this frame. */
   landmarks: PoseLandmarks;
   worldLandmarks: PoseWorldLandmarks | null;
+};
+
+// ---------------------------------------------------------------------------
+// Phase 18 — Landmark processing types
+// ---------------------------------------------------------------------------
+
+/**
+ * Configurable knobs for the Phase 18 landmark processing pipeline.
+ * Every value has a safe Motionly-wide default in
+ * `src/ml/pose/pose-processing-config.ts`. Per-exercise tuning is a
+ * later-phase concern; Phase 18 just exposes the surface.
+ */
+export type PoseProcessingConfig = {
+  /**
+   * Exponential Moving Average mixing factor for landmark smoothing.
+   * `smoothed = alpha * raw + (1 - alpha) * previous`. Clamped to
+   * `[0, 1]`; `1` disables smoothing, `0` would freeze the output.
+   */
+  smoothingAlpha: number;
+  /**
+   * Minimum MediaPipe `visibility` (and `presence` when meaningful)
+   * for a landmark to count as visible in the confidence filter.
+   */
+  landmarkVisibilityThreshold: number;
+  /**
+   * Threshold the averaged key-landmark visibility score must clear
+   * for `isBodyFullyVisible` to be `true`.
+   */
+  bodyVisibilityThreshold: number;
+  /**
+   * Floor on the computed torso scale (hip-mid → shoulder-mid). Below
+   * this Motionly refuses to normalize rather than amplify noise.
+   */
+  normalizationMinTorsoScale: number;
+};
+
+/**
+ * Per-landmark visibility tag computed in Phase 18. `presenceUsed`
+ * records whether the filter was able to evaluate presence in
+ * addition to visibility for this landmark.
+ */
+export type PoseVisibilityTag = {
+  isVisible: boolean;
+  visibility: number;
+  presence: number;
+  presenceUsed: boolean;
+};
+
+/**
+ * A landmark after Phase 18 smoothing + visibility tagging. The
+ * `x/y/z` coordinates are the smoothed values; `rawX/rawY/rawZ`
+ * preserve the unsmoothed values for debug rendering and validation.
+ */
+export type ProcessedPoseLandmark = {
+  /** Smoothed x in normalized image space `[0, 1]`. */
+  x: number;
+  /** Smoothed y in normalized image space `[0, 1]`. */
+  y: number;
+  /** Smoothed z (depth) in MediaPipe's normalized space. */
+  z: number;
+  /** MediaPipe visibility, passed through unchanged. */
+  visibility: number;
+  /** MediaPipe presence (mirrored from visibility today), unchanged. */
+  presence: number;
+  /** Result of the Phase 18 confidence filter for this landmark. */
+  isVisible: boolean;
+  rawX: number;
+  rawY: number;
+  rawZ: number;
+  smoothedX: number;
+  smoothedY: number;
+  smoothedZ: number;
+};
+
+/** 33 smoothed/tagged landmarks. */
+export type ProcessedPoseLandmarks = ReadonlyArray<ProcessedPoseLandmark>;
+
+/**
+ * A landmark expressed in torso-scale-normalized coordinates. Origin
+ * is the hip midpoint; one unit ≈ the hip-to-shoulder distance. Z is
+ * normalized by the same scale.
+ */
+export type NormalizedPoseLandmark = {
+  normalizedX: number;
+  normalizedY: number;
+  normalizedZ: number;
+  /** Mirrors the Phase 18 visibility tag of the source landmark. */
+  isVisible: boolean;
+  visibility: number;
+  presence: number;
+};
+
+/** 33 normalized landmarks. */
+export type NormalizedPoseLandmarks = ReadonlyArray<NormalizedPoseLandmark>;
+
+/** Why a normalization attempt failed, when it did. */
+export type PoseNormalizationFailureReason =
+  | 'no-landmarks'
+  | 'key-landmarks-occluded'
+  | 'invalid-torso-scale'
+  | 'numeric-instability';
+
+/**
+ * Metadata describing whether and how Phase 18 normalization landed
+ * for one processed frame.
+ */
+export type PoseNormalizationMetadata =
+  | {
+      normalized: true;
+      torsoScale: number;
+      hipCenter: { x: number; y: number; z: number };
+      shoulderCenter: { x: number; y: number; z: number };
+    }
+  | {
+      normalized: false;
+      reason: PoseNormalizationFailureReason;
+    };
+
+/**
+ * Named landmark whose Phase 18 visibility tag came back as not
+ * visible. Used to drive the debug occlusion report.
+ */
+export type PoseOcclusionReport = {
+  occludedKeyLandmarks: ReadonlyArray<string>;
+  occludedLandmarks: ReadonlyArray<string>;
+};
+
+/** Per-key-landmark visibility view used by the debug UI. */
+export type PoseKeyLandmarkVisibility = {
+  name: string;
+  visibility: number;
+  presence: number;
+  isVisible: boolean;
+};
+
+/**
+ * Aggregate Phase 18 visibility view of a frame. `bodyVisibilityScore`
+ * is the unweighted mean of the configured key landmarks' visibility
+ * values, in `[0, 1]`.
+ */
+export type PoseVisibilityReport = {
+  /** Mean visibility over the configured key body landmarks `[0, 1]`. */
+  bodyVisibilityScore: number;
+  /** `true` only when every configured key landmark cleared the threshold. */
+  isBodyFullyVisible: boolean;
+  /** Count of total landmarks (across all 33) flagged visible this frame. */
+  visibleLandmarkCount: number;
+  /** Total landmarks evaluated; `0` when no pose was detected. */
+  evaluatedLandmarkCount: number;
+  /** Names of the key landmarks that did NOT clear the threshold. */
+  occludedKeyLandmarks: ReadonlyArray<string>;
+  /** Names of all landmarks that did NOT clear the threshold. */
+  occludedLandmarks: ReadonlyArray<string>;
+  /** Per-key-landmark detail for the debug UI. */
+  keyLandmarkVisibility: ReadonlyArray<PoseKeyLandmarkVisibility>;
+};
+
+/**
+ * Coarse body-visibility status surfaced to the debug UI. `no-pose`
+ * means MediaPipe returned no landmarks this frame; `unknown` is the
+ * initial state before any frame has been processed.
+ */
+export type BodyVisibilityStatus = 'unknown' | 'no-pose' | 'partial' | 'fully-visible';
+
+/**
+ * Per-frame Phase 18 timing breakdown. All values are in milliseconds
+ * and reflect a single processed frame — never an average. The hook
+ * adds these to an aggregate `PoseInferenceStats` separately.
+ */
+export type PoseProcessingStats = {
+  smoothingMs: number;
+  filteringMs: number;
+  normalizationMs: number;
+  totalProcessingMs: number;
+  processedFrames: number;
+  droppedFrames: number;
+};
+
+/**
+ * Phase 18 processed-frame envelope. Mirrors `PoseFrame` for the same
+ * `frameId` / `timestampMs` but carries smoothed + normalized output
+ * plus the visibility / normalization / timing metadata. Always
+ * contains 33 entries when produced, and `null` otherwise.
+ */
+export type ProcessedPoseFrame = {
+  frameId: number;
+  timestampMs: number;
+  smoothedLandmarks: ProcessedPoseLandmarks;
+  normalizedLandmarks: NormalizedPoseLandmarks | null;
+  normalization: PoseNormalizationMetadata;
+  visibility: PoseVisibilityReport;
+  bodyVisibilityStatus: BodyVisibilityStatus;
+  stats: PoseProcessingStats;
+};
+
+/**
+ * Result returned by `PoseFrameProcessor.process` / `processPoseFrame`.
+ * `processed` is `null` when MediaPipe returned no landmarks (the
+ * smoother is reset internally so the next detected frame starts
+ * cleanly without smoothing into stale state).
+ */
+export type PoseProcessingResult = {
+  raw: PoseFrame;
+  processed: ProcessedPoseFrame | null;
 };

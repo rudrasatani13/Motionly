@@ -31,6 +31,18 @@ Phase 17 replaces the placeholder with a **minimal pose-debug shell** — not th
 
 What Phase 17 **still does not** render on this route: rep counter, workout timer as a live session clock, form score, form cue card, "AI feedback", set/exercise progress, completion summary, calories, workout history writes, and voice coaching. All of those land in Phases 18–27. The debug overlay is debug-only and must not be confused with the final skeleton overlay.
 
+## Phase 18 implementation note
+
+Phase 18 keeps the active route as a **debug shell** and extends it with a real landmark processing layer that sits between MediaPipe (Phase 17) and the still-deferred angle / rep / form logic. The active route now additionally:
+
+- Owns a `PoseFrameProcessor` per inference session that wraps an EMA `LandmarkSmoother`, a `ConfidenceFilter`, and a torso-scale `LandmarkNormalizer`. Raw MediaPipe landmarks now flow through smoothing, confidence filtering, and torso-scale normalization before any downstream phase sees them.
+- Stores both `latestFrame` (the Phase 17 raw frame) and `latestProcessedFrame` (smoothed + normalized + tagged) in the pose store. No landmark history is retained.
+- Renders three new debug cards: `PoseProcessingStatusCard` (processed landmark count, smoothing α, normalization status with failure reason), `PoseVisibilityCard` (mean key-landmark visibility, per-key detail, occluded key landmarks), and `PoseProcessingStatsCard` (per-frame `smoothingMs` / `filteringMs` / `normalizationMs` / `totalProcessingMs` plus processed / dropped counts; target < 2 ms total).
+- Adds an **Overlay mode** toggle with `raw`, `smoothed`, and `normalized` chips. The normalized overlay is a torso-scale debug projection labelled `normalized debug projection` — it is **not** a camera-space skeleton and must not be confused with the Phase 26 final overlay.
+- Resets the smoother and processor on no-pose / stop / unmount / model restart so EMA state never bleeds across detections.
+
+What Phase 18 **still does not** render: rep counter, workout timer, form score, form cue card, "AI feedback", set/exercise progress, completion summary, calories, workout history writes, voice coaching, and joint angles (Phase 19). The normalized overlay is debug-only and remains a development aid, not the final skeleton overlay.
+
 ## Entry points
 
 - `/workout/:id/setup` → "Continue to workout" CTA → here.

@@ -788,6 +788,30 @@ Phase 17 makes `/workout/:id/active` a minimal pose-debug shell that runs real M
 
 ---
 
+## 16o. Landmark Data Pipeline & Smoothing Manual QA (Phase 18)
+
+Phase 18 inserts an Exponential Moving Average smoother, a confidence/visibility filter, and a torso-scale normalizer between the Phase 17 raw MediaPipe output and the still-deferred angle/rep/form logic. The active route remains a debug shell. No new runtime dependencies were added.
+
+- Run `pnpm install` and confirm no new packages were added since Phase 17 (`@mediapipe/tasks-vision` is still the only new ML dependency).
+- Run `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, and `pnpm build` and confirm they all pass.
+- Run `pnpm preview`, complete onboarding if needed, open a free workout detail page, **Start workout**, complete camera setup, and **Continue to workout**. The active route should render the Phase 18 pose-debug shell (workout name + "Phase 18 pose debug" caption + Phase 18 scope text + camera-off card + Pose debug panel with the new processing / visibility / processing-stats cards).
+- Tap **Start pose debug**, grant the browser camera prompt, and confirm: status transitions `Idle → Loading model → Ready → Running` (or `No pose detected` if nobody is in frame), the **Processed pose** card shows `Processed landmarks 33 / 33` when a body is in frame, smoothing α defaults to `0.50`, and **Body visibility** shows a mean score that reflects the real subject.
+- With the **Overlay mode** chips, switch between **Raw landmarks** and **Smoothed landmarks** and confirm the smoothed overlay visibly jitters less than the raw overlay on the same subject. Switch to **Normalized (debug)** and confirm the overlay redraws as a torso-scale projection labelled `normalized debug projection` — this is debug-only and not a camera-space skeleton.
+- Hide one knee / ankle / shoulder with your hand (or step partially out of frame) and confirm the **Body visibility** card moves the affected landmark into the **Occluded key landmarks** list, the per-key visibility row turns warning-toned, and the **Processed pose** card flips from `Fully visible` to `Partially visible`. The pipeline keeps emitting frames — Phase 18 does not block inference.
+- Hide both shoulders or both hips (or stand so they are out of frame) and confirm the **Processed pose** card switches normalization to `Not normalized` with the matching reason (`Shoulders or hips were not visible enough this frame`). Smoothed landmarks should still update; the normalized overlay should disappear.
+- Step closer to / farther from the camera while staying in full view and confirm the normalized overlay coordinates stay roughly stable relative to the body, demonstrating the torso-scale normalization is doing its job. The raw / smoothed overlays will continue to shrink and grow with the camera distance.
+- Step fully out of frame and confirm: the status becomes `No pose detected`, the **Processed pose** card shows `Processed landmarks 0 / 33`, the smoother resets (re-entering frame should not leave a stale ghost overlay), and the **Processing overhead** card's `Dropped frames` counter increments.
+- Watch the **Processing overhead** card for a few seconds and confirm `Total` stays mostly under `2.00 ms` on a normal device. Above-target frames render in a warning tone but do not block anything.
+- Tap **Log current landmarks** and confirm one `console.info` entry in DevTools containing both raw and smoothed first-five samples plus the visibility report, normalization metadata, and processing stats — no per-frame log spam.
+- Tap **Stop pose debug** and confirm: inference stops, the camera indicator turns off, the panel returns to `Idle`, the **Performance** and **Processing overhead** stats reset, no lingering `MediaStream` (check `navigator.mediaDevices` indicator), and no ghost dots remain on the next start.
+- Navigate to **Back to setup** and **Back to workout detail** during an active session and confirm the camera indicator turns off and the processor + inference stop cleanly.
+- Let the active page run with someone in frame for ~10 minutes on a real device and confirm no crash, no significant memory growth, stable FPS, and that the smoothed overlay continues to lag the raw overlay by a frame without freezing.
+- Confirm: no rep counter, no workout timer, no form score, no calories, no cues, no completion summary, no workout history write, no fake AI feedback, no fake "fully visible" claims when key landmarks are occluded, and no upload / persisted frames anywhere in the active route.
+- Check light and dark mode for the three new debug cards.
+- Check 5.0-inch and 6.7-inch mobile viewport sizes. The Phase 18 cards should stack cleanly on small viewports and stay reachable above the bottom nav.
+
+---
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:
@@ -911,7 +935,7 @@ After install:
 Per `MOTIONLY_MASTER_PLAN.md`, the following are still deferred to their own phases. Do **not** add any of these until their phase is active:
 
 - Workout history and programmed plans (Phases 28, 33)
-- Landmark smoothing, joint angle math, exercise engines, rep counting, form scoring, and active workout coaching (Phases 18–26)
+- Joint angle math, exercise engines, rep counting, form scoring, and active workout coaching (Phases 19–26)
 - Voice feedback system beyond the one user-initiated setup instruction (Phase 25)
 - Durable cross-feature state management and the full IndexedDB storage adapter (Phases 29–30)
 - Supabase backend, authentication (Phases 31–32)
@@ -924,7 +948,9 @@ Per `MOTIONLY_MASTER_PLAN.md`, the following are still deferred to their own pha
 
 > Phase 16 is complete: free workout detail pages route to a real camera setup screen with user-initiated live preview, local lighting check, silhouette guide, placement instructions, manual alignment confirmation, stream cleanup, and handoff to the active route.
 
-> Phase 17 is complete: `@mediapipe/tasks-vision` is installed, `public/models/pose_landmarker_lite.task` and `pose_landmarker_full.task` ship in-tree, the Tasks-Vision WASM fileset is served app-locally from `/mediapipe-wasm/`, and `/workout/:id/active` now runs real on-device MediaPipe Pose Landmarker inference with a live landmark debug overlay, FPS / inference stats, model + delegate status (GPU → CPU fallback honest), and clean lifecycle. Smoothing, joint angles, rep counting, form scoring, coaching, session history, Supabase/auth/payments, and analytics remain deferred to later phases.
+> Phase 17 is complete: `@mediapipe/tasks-vision` is installed, `public/models/pose_landmarker_lite.task` and `pose_landmarker_full.task` ship in-tree, the Tasks-Vision WASM fileset is served app-locally from `/mediapipe-wasm/`, and `/workout/:id/active` now runs real on-device MediaPipe Pose Landmarker inference with a live landmark debug overlay, FPS / inference stats, model + delegate status (GPU → CPU fallback honest), and clean lifecycle. Joint angles, rep counting, form scoring, coaching, session history, Supabase/auth/payments, and analytics remain deferred to later phases.
+
+> Phase 18 is complete: raw MediaPipe landmarks now flow through real EMA smoothing, real confidence/visibility filtering, and real torso-scale normalization. The active route renders processed-landmark status, body-visibility detail, processing-overhead breakdown, and `raw` / `smoothed` / `normalized` overlay modes — all from real per-frame data. Joint angles, rep counting, form scoring, coaching cues, workout timers, completion summaries, workout history/session records, Supabase/auth/payments, and analytics remain deferred to later phases.
 
 ## 22. Phase 2 Success Checklist
 
