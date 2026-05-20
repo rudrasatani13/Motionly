@@ -68,7 +68,7 @@ If two rules conflict, **`ARCHITECTURE.md` wins on structure, this file wins on 
 - **Pose engine, joint angles, exercise state machines** live in `src/ml/`. Web Worker entry points live in `src/workers/`.
 - **No fake ML outputs.** Do not fabricate rep counts, form scores, or pose landmarks anywhere — not in stories, not in demos, not in tests' fixtures that get rendered as if real.
 - **No medical or injury-prediction claims.** Motionly is a movement coach. Do not phrase form feedback in clinical or diagnostic terms ("injury risk", "diagnosis", "treatment"). Use coaching language.
-- **Inference runs off the main thread** once Phase 19 lands. Until then, no inference exists.
+- **Inference is still on the main thread.** The Phase 17 MediaPipe wrapper, Phase 18 processing layer, and Phase 19 angle layer all run in a `requestAnimationFrame` loop on the main thread. A Web Worker + `OffscreenCanvas` move is intentionally deferred — the boundary stays swap-friendly for it.
 
 ---
 
@@ -249,7 +249,6 @@ Phase 18 inserts a smoothing / confidence-filter / torso-scale-normalization lay
 - **No fake body visibility.** `isBodyFullyVisible` is `true` only when every configured key landmark cleared the per-landmark threshold. Do not claim "fully visible" from the mean score alone.
 - **Smoothing must reset on no-pose.** `LandmarkSmoother.reset()` must be called on no-pose / partial-pose / model restart / camera stop / inference stop / unmount. Stale EMA state must never bleed into a later detected frame.
 - **Normalization must fail safely.** When the four torso landmarks (left/right hip, left/right shoulder) are missing, occluded below threshold, or yield a too-small / non-finite torso scale, the normalizer returns a tagged failure (`no-landmarks`, `key-landmarks-occluded`, `invalid-torso-scale`, `numeric-instability`). Do not invent normalized values.
-- **No angle calculations until Phase 19.** Do not compute joint angles, trunk angle, knee valgus, or bilateral symmetry in Phase 18 — even as a "quick preview".
 - **No reps, scores, or cues until later phases.** Phase 18 must not increment rep counters, score form, throttle cues, render `FormCueCard`, write workout sessions, or start workout timers.
 - **No pose history persistence.** The pose store keeps only the latest raw frame and the latest processed frame, in memory. No `localStorage`, no IndexedDB, no Supabase, no analytics, no file writes, no network calls per frame, no unbounded arrays.
 - **No new dependencies.** Phase 18 uses plain TypeScript math. Do not add math, pose, charting, analytics, or state libraries.
@@ -257,6 +256,26 @@ Phase 18 inserts a smoothing / confidence-filter / torso-scale-normalization lay
 - **Mutation discipline.** Do not mutate the raw `PoseFrame.landmarks` array. Create a new `ProcessedPoseLandmark[]` per frame.
 - **Single processor per session.** The hook owns one `PoseFrameProcessor` per inference session. Do not create a new processor per frame — that would disable smoothing.
 - **Processing overhead target.** Aim for less than 2 ms per frame total pipeline overhead. The Phase 18 debug surface flags above-target frames in a warning tone — do not silence the signal.
+
+---
+
+## 6n. Joint Angle Calculation Engine (Phase 19)
+
+Phase 19 adds a pure-TypeScript joint-angle layer on top of the Phase 18 processed frame. The same honesty rules apply, plus a handful of angle-specific ones.
+
+- **No fake angles.** Missing or occluded required landmarks produce a typed unavailable result (`key-landmarks-missing`, `key-landmarks-occluded`, `normalization-unavailable`, `numeric-instability`). Never fill an unavailable angle with `0`, the previous frame's value, or a typical pose default.
+- **No `NaN` / `Infinity` to UI.** Every numeric path clamps cosine to `[-1, 1]`, guards against zero-length vectors and non-finite inputs, and returns a tagged failure rather than letting non-finite values escape into the UI.
+- **Unavailable angles must have a reason.** `AngleValue.status` and `AngleMetricValue.status` are required. The debug surface shows the reason next to the dashed value; do not return `null` without a reason.
+- **No "good vs bad" classification.** Phase 19 reports angles raw. Do not tone-color a knee angle as `success` because it crossed a depth threshold, do not call valgus "bad", do not say "depth OK". Form rules and tones land in Phase 21+.
+- **No rep counting in the angle layer.** No state machine, no rep counter, no hysteresis, no dwell timer. Phase 20 owns rep logic.
+- **No form scores or cues in the angle layer.** No `FormCueCard`, no 0–100 score, no toast cue, no voice prompt, no per-rep summary. Phase 21+ owns those.
+- **No angle history persistence.** `AngleHistory` is a bounded in-memory ring buffer (default 30). It must reset on stop / unmount / no-pose / model restart. No `localStorage`, no IndexedDB, no Supabase, no file writes, no analytics.
+- **Angle calculations stay pure and lightweight.** No DOM, no React, no MediaPipe imports, no network, no per-frame `console.log` / toasts. Per-frame `performance.now()` measurements are the only allowed side effect.
+- **Honor unit naming.** True vector joint angles are degrees. Knee valgus and hip symmetry are unit-less ratios, not degrees — keep the field names (`leftKneeValgusRatio`, `rightKneeValgusRatio`, `hipSymmetryDelta`) and unit tags (`'ratio'`) honest.
+- **Source space honesty.** Vector joint angles read smoothed image-space landmarks (scale-invariant for angles). Ratio metrics require Phase 18 normalized landmarks — when normalization is unavailable, return `normalization-unavailable` rather than computing from image-space pixels.
+- **Per-session processor ownership.** The hook owns one `AngleFrameProcessor` per inference session. Do not create a new processor per frame — that would defeat the bounded history.
+- **No new dependencies.** Phase 19 uses plain TypeScript math. Do not add math, charting, statistics, or analytics libraries.
+- **Calculation overhead target.** Aim for less than 1 ms per frame total angle calculation overhead. The Phase 19 debug surface flags above-target frames in a warning tone.
 
 ---
 

@@ -43,6 +43,17 @@ Phase 18 keeps the active route as a **debug shell** and extends it with a real 
 
 What Phase 18 **still does not** render: rep counter, workout timer, form score, form cue card, "AI feedback", set/exercise progress, completion summary, calories, workout history writes, voice coaching, and joint angles (Phase 19). The normalized overlay is debug-only and remains a development aid, not the final skeleton overlay.
 
+## Phase 19 implementation note
+
+Phase 19 keeps the active route as a **debug shell** — there is still no real workout HUD on this screen. The Phase 17 raw frame and the Phase 18 processed frame still drive the existing debug surface unchanged. On top of those, Phase 19 now:
+
+- Owns an `AngleFrameProcessor` per inference session that consumes the Phase 18 `ProcessedPoseFrame` and emits a single `AngleSnapshot` per frame. The snapshot contains all bilateral joint angles (knee, hip, ankle, elbow, shoulder), the trunk angle, the knee valgus and hip symmetry geometry metrics, and an aggregate availability report.
+- Maintains a bounded 30-frame `AngleHistory` ring buffer inside the processor. The store keeps only the latest snapshot plus a small `AngleCalculationStats` (per-frame ms, snapshots produced, frames skipped, history size / capacity). No angle history is persisted.
+- Renders a new `AngleDebugPanel` below the Phase 18 pose-debug surface, with three cards: `AngleStatsCard` (latest-frame overhead and history size), `AngleAvailabilityCard` (counts of available vs unavailable angles and metrics plus the unavailable names), and `JointAngleGrid` (every angle in degrees, every metric as a ratio, with typed unavailable reasons). A debug-only "Log current angle snapshot" button writes a single `console.info` entry.
+- Resets the angle processor on no-pose / stop / unmount / model restart so neither smoothing nor angle history blends stale data across detections.
+
+What Phase 19 **still does not** render: rep counter, workout timer, form score, form cue card, "AI feedback", set/exercise progress, completion summary, calories, workout history writes, voice coaching, and any per-exercise classification of an angle as "good" or "bad". Those land in Phases 20+. The angle debug surface is debug-only and must not be confused with the final coaching UI.
+
 ## Entry points
 
 - `/workout/:id/setup` → "Continue to workout" CTA → here.

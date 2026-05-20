@@ -812,6 +812,29 @@ Phase 18 inserts an Exponential Moving Average smoother, a confidence/visibility
 
 ---
 
+## 16p. Joint Angle Calculation Manual QA (Phase 19)
+
+Phase 19 layers a pure-TypeScript joint-angle calculation pipeline on top of the Phase 18 processed frame. The active route remains a debug shell — Phase 19 only adds the angle debug surface. No new runtime dependencies were added.
+
+- Run `pnpm install` and confirm no new packages were added since Phase 18.
+- Run `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, and `pnpm build` and confirm they all pass.
+- Run `pnpm preview`, complete onboarding if needed, open a free workout detail page, **Start workout**, complete camera setup, and **Continue to workout**. The active route should render the Phase 19 pose + angle debug shell (workout name + "Phase 19 pose + angle debug" caption + Phase 19 scope text + camera-off card + Pose debug panel + Angle debug panel).
+- Tap **Start pose debug**, grant the browser camera prompt, and confirm the Phase 17 + 18 surfaces still behave as in §16n / §16o.
+- Step into frame standing upright and confirm the **Joint angles** card fills in plausible values: knees and hips near `~170–180°` when extended, elbows and shoulders matching your arm position. Trunk angle should stay near `0–10°` when standing tall facing the camera.
+- Squat down and confirm both knee angles drop into the `~70–100°` range at the bottom of the rep. The trunk angle should increase slightly as you hinge at the hips.
+- Intentionally let your knees cave inward while squatting and confirm the **Left knee valgus** / **Right knee valgus** ratios increase in magnitude. The card labels them as `ratio`, not degrees.
+- Cover one shoulder or hip with your hand and confirm: the affected angles (e.g. trunk, hip on that side) flip to a dashed value with a reason like `occluded`, and the **Angle availability** card lists the unavailable angle names. Knee valgus and hip symmetry should flip to `no normalization` or `occluded` depending on which landmarks went missing.
+- Step fully out of frame and confirm: the **Joint angles** card returns to `Waiting for pose`, the **Angle history** counter resets to `0 / 30`, and no stale values remain after re-entering frame.
+- Watch the **Angle calculation overhead** card for a few seconds and confirm `Latest frame` stays mostly under `1.00 ms` on a normal device. Above-target frames render in a warning tone but do not block anything.
+- Tap **Log current angle snapshot** and confirm one `console.info` entry in DevTools containing the full snapshot (every angle and metric with status, used landmarks, visibility, source space) plus the angle stats — no per-frame log spam. With no body in frame the button toasts that no snapshot is available.
+- Confirm: no rep counter, no form score, no calories, no cues, no completion summary, no workout history write, no fake AI feedback, no fake angles, no `NaN` / `Infinity` values anywhere in the angle UI, and no upload / persisted angles anywhere in the active route.
+- Tap **Stop pose debug** and confirm: inference stops, the camera indicator turns off, the panel returns to `Idle`, the **Angle calculation overhead** card resets to `Waiting`, and no stale snapshot remains on the next start.
+- Navigate to **Back to setup** and **Back to workout detail** during an active session and confirm the camera indicator turns off and the angle processor resets cleanly.
+- Check light and dark mode for the new angle debug cards.
+- Check 5.0-inch and 6.7-inch mobile viewport sizes. The Phase 19 cards should stack cleanly on small viewports and stay reachable above the bottom nav.
+
+---
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:
@@ -951,6 +974,8 @@ Per `MOTIONLY_MASTER_PLAN.md`, the following are still deferred to their own pha
 > Phase 17 is complete: `@mediapipe/tasks-vision` is installed, `public/models/pose_landmarker_lite.task` and `pose_landmarker_full.task` ship in-tree, the Tasks-Vision WASM fileset is served app-locally from `/mediapipe-wasm/`, and `/workout/:id/active` now runs real on-device MediaPipe Pose Landmarker inference with a live landmark debug overlay, FPS / inference stats, model + delegate status (GPU → CPU fallback honest), and clean lifecycle. Joint angles, rep counting, form scoring, coaching, session history, Supabase/auth/payments, and analytics remain deferred to later phases.
 
 > Phase 18 is complete: raw MediaPipe landmarks now flow through real EMA smoothing, real confidence/visibility filtering, and real torso-scale normalization. The active route renders processed-landmark status, body-visibility detail, processing-overhead breakdown, and `raw` / `smoothed` / `normalized` overlay modes — all from real per-frame data. Joint angles, rep counting, form scoring, coaching cues, workout timers, completion summaries, workout history/session records, Supabase/auth/payments, and analytics remain deferred to later phases.
+
+> Phase 19 is complete: the Phase 18 processed pose frame now feeds a pure-TypeScript joint-angle layer under `src/ml/angles/`. Per-frame named joint angles (knees, hips, ankles, elbows, shoulders, trunk), geometry-derived metrics (knee valgus ratio, hip symmetry delta), a bounded 30-frame `AngleHistory` ring buffer, a per-frame `AngleCalculationStats` summary, and a debug-only angle panel land on `/workout/:id/active`. Rep counting, form scoring, coaching cues, workout timers, completion summaries, workout history/session records, Supabase/auth/payments, and analytics remain deferred to later phases.
 
 ## 22. Phase 2 Success Checklist
 

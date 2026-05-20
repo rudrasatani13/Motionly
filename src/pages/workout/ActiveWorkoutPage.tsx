@@ -4,7 +4,12 @@ import { ArrowLeft, Camera, Lock, Square } from 'lucide-react';
 
 import { findWorkoutDetailById } from '@/data/workout-library';
 import { EmptyState, SkeletonLoader, useToast } from '@components/feedback';
-import { PoseDebugPanel, PoseLandmarkOverlay, type PoseOverlayMode } from '@components/pose-debug';
+import {
+  AngleDebugPanel,
+  PoseDebugPanel,
+  PoseLandmarkOverlay,
+  type PoseOverlayMode,
+} from '@components/pose-debug';
 import { Button, Card, Column, Icon, Row, Text } from '@components/primitives';
 import { WorkoutNotFoundState } from '@components/workout-detail';
 import { useNavigation } from '@hooks/useNavigation';
@@ -244,16 +249,16 @@ export default function ActiveWorkoutPage(): JSX.Element {
     >
       <Column gap="xs">
         <Text variant="caption" tone="muted">
-          Active workout · Phase 18 pose debug
+          Active workout · Phase 19 pose + angle debug
         </Text>
         <Text variant="h1" as="h1" id="active-workout-heading">
           {workout.name}
         </Text>
         <Text tone="muted">
-          This screen runs real on-device MediaPipe Pose Landmarker inference and processes each
-          frame through Phase 18 smoothing, confidence filtering, and torso-scale normalization.
-          Phase 18 processes landmarks for stability before angle and rep logic. No reps, form
-          scores, or coaching are generated yet — nothing on this page is fabricated.
+          This screen runs real on-device MediaPipe Pose Landmarker inference, processes each frame
+          through Phase 18 smoothing, confidence filtering, and torso-scale normalization, then
+          computes named joint angles on top with Phase 19. Phase 19 calculates joint angles only.
+          Rep counting and form scoring arrive later — nothing on this page is fabricated.
         </Text>
       </Column>
 
@@ -401,10 +406,12 @@ export default function ActiveWorkoutPage(): JSX.Element {
         onChangeOverlayMode={setOverlayMode}
       />
 
+      <AngleDebugPanel snapshot={pose.latestAngleSnapshot} stats={pose.angleStats} />
+
       <Text variant="caption" tone="muted">
-        Phase 18 scope reminder: no rep counter, no form score, no calories, no workout timer, no
-        completion summary, and no workout history are produced on this screen. Joint angles arrive
-        in Phase 19; rep counting in Phase 20; form scoring and coaching in later phases
+        Phase 19 scope reminder: no rep counter, no form score, no calories, no workout timer, no
+        completion summary, and no workout history are produced on this screen. Rep counting arrives
+        in Phase 20; form scoring and coaching in later phases
         {poseRunning ? '. Pose inference is currently active.' : '.'}
       </Text>
     </section>

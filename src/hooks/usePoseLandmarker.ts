@@ -1,10 +1,12 @@
 /**
- * Phase 17 + 18 — Pose inference React hook.
+ * Phase 17 + 18 + 19 — Pose inference React hook.
  *
  * Owns the lifecycle of a `MotionlyPoseLandmarker`, the
- * `requestAnimationFrame` inference loop, and (Phase 18) the
+ * `requestAnimationFrame` inference loop, the Phase 18
  * `PoseFrameProcessor` that smooths / filters / normalizes raw
- * MediaPipe landmarks before storing them.
+ * MediaPipe landmarks before storing them, and the Phase 19
+ * `AngleFrameProcessor` that computes named joint angle snapshots on
+ * top of the Phase 18 output.
  *
  * Responsibilities:
  * - Lazily initialize the MediaPipe wrapper after a user-initiated
@@ -13,17 +15,19 @@
  * - Run at most one detection per animation frame.
  * - Skip frames that have no new `currentTime` so MediaPipe never
  *   sees duplicate timestamps.
- * - For each raw frame, run the Phase 18 pipeline and store both the
- *   raw `PoseFrame` and the resulting `ProcessedPoseFrame`.
- * - Measure live FPS / inference timing and Phase 18 processing
- *   timings into the pose store.
+ * - For each raw frame, run the Phase 18 pipeline, then feed the
+ *   processed frame into the Phase 19 angle processor and store the
+ *   resulting `AngleSnapshot` plus per-frame angle calculation stats.
+ * - Measure live FPS / inference timing, Phase 18 processing timings,
+ *   and Phase 19 angle calculation overhead into the pose store.
  * - Tear down cleanly on unmount, errors, route changes, and
- *   external camera stops. Reset the processor whenever the body
- *   leaves the frame so the EMA never blends stale data into a
- *   later detection.
+ *   external camera stops. Reset both processors whenever the body
+ *   leaves the frame so neither smoothing nor angle history blends
+ *   stale data into a later detection.
  *
  * Out of scope (intentionally deferred to later phases):
- * - Joint angle math (Phase 19), rep state machines (Phase 20+).
+ * - Rep state machines (Phase 20+), form scoring (Phase 21+),
+ *   coaching cues (Phase 22+).
  * - Worker / OffscreenCanvas. The hook keeps a tight boundary so a
  *   worker version can replace this implementation later without
  *   rewriting consumers. See `docs/ARCHITECTURE.md` for the note.
@@ -31,10 +35,12 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 
+import { AngleFrameProcessor, emptyAngleStats } from '@ml/angles';
 import { MotionlyPoseLandmarker } from '@ml/pose/PoseLandmarker';
 import { POSE_MIN_FRAME_INTERVAL_MS } from '@ml/pose/pose-model-config';
 import { PoseFrameProcessor } from '@ml/pose/processPoseFrame';
 import { usePoseStore } from '@store/usePoseStore';
+import type { AngleCalculationStats, AngleSnapshot } from '@/types/angles';
 import type {
   BodyVisibilityStatus,
   PoseDelegate,
@@ -60,11 +66,13 @@ export type UsePoseLandmarkerControls = {
   error: PoseInferenceError | null;
   stats: PoseInferenceStats;
   processingStats: PoseProcessingStats;
+  angleStats: AngleCalculationStats;
   visibilityReport: PoseVisibilityReport;
   bodyVisibilityStatus: BodyVisibilityStatus;
   processingConfig: PoseProcessingConfig;
   latestFrame: PoseFrame | null;
   latestProcessedFrame: ProcessedPoseFrame | null;
+  latestAngleSnapshot: AngleSnapshot | null;
   modelVariant: PoseModelVariant | null;
   delegate: PoseDelegate | null;
   /** Initialize MediaPipe and start the inference loop. */
@@ -99,6 +107,7 @@ function average(values: ReadonlyArray<number>): number {
 export function usePoseLandmarker(): UsePoseLandmarkerControls {
   const landmarkerRef = useRef<MotionlyPoseLandmarker | null>(null);
   const processorRef = useRef<PoseFrameProcessor | null>(null);
+  const angleProcessorRef = useRef<AngleFrameProcessor | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const runningRef = useRef(false);
@@ -115,6 +124,8 @@ export function usePoseLandmarker(): UsePoseLandmarkerControls {
   const setStoreError = usePoseStore((s) => s.setError);
   const setStoreFrame = usePoseStore((s) => s.setLatestFrame);
   const setStoreProcessedFrame = usePoseStore((s) => s.setLatestProcessedFrame);
+  const setStoreAngleSnapshot = usePoseStore((s) => s.setLatestAngleSnapshot);
+  const setStoreAngleStats = usePoseStore((s) => s.setAngleStats);
   const setStoreStats = usePoseStore((s) => s.setStats);
   const setStoreProcessingStats = usePoseStore((s) => s.setProcessingStats);
   const setStoreVisibilityReport = usePoseStore((s) => s.setVisibilityReport);
@@ -128,11 +139,13 @@ export function usePoseLandmarker(): UsePoseLandmarkerControls {
   const error = usePoseStore((s) => s.error);
   const stats = usePoseStore((s) => s.stats);
   const processingStats = usePoseStore((s) => s.processingStats);
+  const angleStats = usePoseStore((s) => s.angleStats);
   const visibilityReport = usePoseStore((s) => s.visibilityReport);
   const bodyVisibilityStatus = usePoseStore((s) => s.bodyVisibilityStatus);
   const processingConfig = usePoseStore((s) => s.processingConfig);
   const latestFrame = usePoseStore((s) => s.latestFrame);
   const latestProcessedFrame = usePoseStore((s) => s.latestProcessedFrame);
+  const latestAngleSnapshot = usePoseStore((s) => s.latestAngleSnapshot);
   const modelVariant = usePoseStore((s) => s.modelVariant);
   const delegate = usePoseStore((s) => s.delegate);
 
@@ -148,7 +161,8 @@ export function usePoseLandmarker(): UsePoseLandmarkerControls {
       const video = videoRef.current;
       const landmarker = landmarkerRef.current;
       const processor = processorRef.current;
-      if (video === null || landmarker === null || processor === null) {
+      const angleProcessor = angleProcessorRef.current;
+      if (video === null || landmarker === null || processor === null || angleProcessor === null) {
         return;
       }
 
@@ -205,10 +219,13 @@ export function usePoseLandmarker(): UsePoseLandmarkerControls {
       };
 
       const { processed } = processor.process(frame);
+      const angleResult = angleProcessor.process(processed);
 
       if (mountedRef.current) {
         setStoreFrame(frame);
         setStoreProcessedFrame(processed);
+        setStoreAngleSnapshot(angleResult.snapshot);
+        setStoreAngleStats(angleResult.stats);
         if (processed !== null) {
           setStoreProcessingStats(processed.stats);
           setStoreVisibilityReport(processed.visibility);
@@ -247,6 +264,8 @@ export function usePoseLandmarker(): UsePoseLandmarkerControls {
       rafRef.current = requestAnimationFrame(() => tickRef.current());
     };
   }, [
+    setStoreAngleSnapshot,
+    setStoreAngleStats,
     setStoreBodyVisibilityStatus,
     setStoreError,
     setStoreFrame,
@@ -274,6 +293,10 @@ export function usePoseLandmarker(): UsePoseLandmarkerControls {
     if (processorRef.current !== null) {
       processorRef.current.reset();
       processorRef.current = null;
+    }
+    if (angleProcessorRef.current !== null) {
+      angleProcessorRef.current.reset();
+      angleProcessorRef.current = null;
     }
     videoRef.current = null;
     lastVideoTimeRef.current = -1;
@@ -312,21 +335,30 @@ export function usePoseLandmarker(): UsePoseLandmarkerControls {
       processorRef.current = processor;
       setStoreProcessingConfig(processor.getConfig());
 
+      const angleProcessor = new AngleFrameProcessor();
+      angleProcessorRef.current = angleProcessor;
+      setStoreAngleSnapshot(null);
+      setStoreAngleStats(emptyAngleStats(angleProcessor.getHistory()));
+
       const result = await landmarker.initialize(options);
 
       if (!mountedRef.current) {
         landmarker.close();
         processor.reset();
+        angleProcessor.reset();
         landmarkerRef.current = null;
         processorRef.current = null;
+        angleProcessorRef.current = null;
         return;
       }
 
       if (result.kind === 'error') {
         landmarker.close();
         processor.reset();
+        angleProcessor.reset();
         landmarkerRef.current = null;
         processorRef.current = null;
+        angleProcessorRef.current = null;
         setStoreError(result.error);
         setStoreStatus('error');
         return;
@@ -356,6 +388,8 @@ export function usePoseLandmarker(): UsePoseLandmarkerControls {
       rafRef.current = requestAnimationFrame(() => tickRef.current());
     },
     [
+      setStoreAngleSnapshot,
+      setStoreAngleStats,
       setStoreDelegate,
       setStoreError,
       setStoreModelVariant,
@@ -371,11 +405,13 @@ export function usePoseLandmarker(): UsePoseLandmarkerControls {
     error,
     stats,
     processingStats,
+    angleStats,
     visibilityReport,
     bodyVisibilityStatus,
     processingConfig,
     latestFrame,
     latestProcessedFrame,
+    latestAngleSnapshot,
     modelVariant,
     delegate,
     start,

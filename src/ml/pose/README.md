@@ -71,9 +71,12 @@ calls `process()` per raw frame; the pose store keeps both the raw
 `PoseFrame` and the resulting `ProcessedPoseFrame`. No history is
 stored.
 
+The Phase 19 angle layer in `src/ml/angles/` consumes the resulting
+`ProcessedPoseFrame` and produces a single `AngleSnapshot` per frame.
+See `src/ml/angles/README.md`.
+
 ## Intentionally deferred
 
-- Joint angles (Phase 19).
 - Exercise state machines, rep counting (Phase 20+).
 - Form scoring and coaching cues (Phase 21+).
 - Voice feedback (Phase 25).

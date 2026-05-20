@@ -152,9 +152,10 @@ export function PoseDebugPanel({
           Pose debug
         </Text>
         <Text variant="caption" tone="muted">
-          Phase 18 processes landmarks for stability before angle and rep logic. No reps, form
-          scores, or coaching are generated yet. Raw MediaPipe landmarks now flow through smoothing,
-          confidence filtering, and torso-scale normalization.
+          Phase 18 processes landmarks for stability before angle and rep logic; Phase 19 then
+          calculates joint angles only — no reps, form scores, or coaching are generated yet. Raw
+          MediaPipe landmarks flow through smoothing, confidence filtering, and torso-scale
+          normalization before the angle layer consumes them.
         </Text>
       </Column>
 
