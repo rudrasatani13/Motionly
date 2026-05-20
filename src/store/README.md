@@ -16,4 +16,6 @@ Global application state.
 
 ## Phase status
 
-Reserved. Currently empty by design. Do not pre-create stores until **Phase 29**.
+Phase 11 introduces `useOnboardingStore.ts` for the first three onboarding screens. It is intentionally in-memory only: no `localStorage`, IndexedDB, Supabase, auth state, or `hasOnboarded` writes.
+
+Broader cross-feature state management still waits for the planned state-management phase.

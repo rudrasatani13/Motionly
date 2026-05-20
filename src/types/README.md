@@ -16,4 +16,6 @@ Shared TypeScript type definitions for the app's domain model.
 
 ## Phase status
 
-Reserved. Types are introduced alongside the features that use them. Empty by design.
+Phase 11 introduces `onboarding.ts` for the onboarding goal, fitness level, step, and draft types used by screens 1–3.
+
+Additional domain types should still be introduced only alongside the feature phase that uses them.

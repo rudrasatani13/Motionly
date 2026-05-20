@@ -139,6 +139,18 @@ Phase 10 ships the launch orchestration layer under `src/launch/`, the launch UI
 
 ---
 
+## 6f. Onboarding Screens 1–3 (Phase 11)
+
+Phase 11 introduces `/welcome`, the first three internal `/onboarding` steps, and the in-memory Zustand onboarding draft store. The rules here protect the phase boundary until screens 4–5 and completion land.
+
+- **No fake onboarding completion.** Do not write `hasOnboarded = true`, do not navigate to Home as if onboarding is done, and do not create fake completion flags in memory, `localStorage`, IndexedDB, Supabase, or route state.
+- **No fake personalization.** Goal and fitness selections may be stored as draft inputs only. Do not generate workout recommendations, form scores, first workouts, streaks, stats, or AI feedback from them.
+- **No weight or body-shame prompts.** Do not ask for current weight, target weight, body composition, calories, diet goals, or "ideal body" framing in onboarding.
+- **No camera prompt yet.** Do not call `navigator.mediaDevices.getUserMedia`, request camera permission, render a fake camera preview, or imply the camera / ML stack is active before the planned camera phases.
+- **Selection state stays local and honest.** Phase 11 onboarding state is in-memory Zustand only. Selections persist while moving back and forward inside `/onboarding`, but refresh persistence, IndexedDB writes, Supabase sync, and completion writes wait for later phases.
+
+---
+
 ## 7. Styling
 
 - **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.

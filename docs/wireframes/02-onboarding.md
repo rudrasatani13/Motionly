@@ -13,6 +13,8 @@ Gather the minimum personal context Motionly needs to recommend a safe first wor
 **Phase 11** — Welcome, Goal, Fitness Level (screens 1–3).
 **Phase 12** — Limitations, Camera Tutorial (screens 4–5).
 
+Phase 11 implementation note: because screens 4–5 are intentionally deferred, pressing Continue on step 3 shows an honest in-route Phase 12 handoff panel instead of advancing to Limitations. It does not mark onboarding complete and should be replaced by step 4 when Phase 12 lands.
+
 ## Entry points
 
 - First-time launch from `/` after the splash (when the persisted `hasOnboarded` flag is absent / false).

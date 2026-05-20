@@ -383,19 +383,20 @@ After `pnpm install`, validate the routing skeleton in both `pnpm dev` and `pnpm
 
 ### Routes to open manually
 
-| URL                                              | Expectation                                               |
-| ------------------------------------------------ | --------------------------------------------------------- |
-| `/`                                              | Dashboard placeholder with bottom tab bar; "Home" active. |
-| `/workouts`                                      | Workout Library placeholder; "Workouts" active.           |
-| `/workouts/test-id`                              | Workout Detail placeholder; shows route param `test-id`.  |
-| `/workout/test-id/setup`                         | Camera Setup placeholder.                                 |
-| `/workout/test-id/active`                        | Active Workout placeholder.                               |
-| `/workout/test-id/summary`                       | Workout Summary placeholder.                              |
-| `/progress`                                      | Progress placeholder; "Progress" tab active.              |
-| `/profile`                                       | Profile placeholder; "Profile" tab active.                |
-| `/welcome`, `/login`, `/register`, `/onboarding` | Auth-layout placeholders; no bottom tab bar.              |
-| `/paywall`, `/permissions`                       | Modal-style placeholders; no bottom tab bar.              |
-| `/some-unknown-route`                            | 404 page with a "Back to Home" link.                      |
+| URL                        | Expectation                                                   |
+| -------------------------- | ------------------------------------------------------------- |
+| `/`                        | Dashboard placeholder with bottom tab bar; "Home" active.     |
+| `/workouts`                | Workout Library placeholder; "Workouts" active.               |
+| `/workouts/test-id`        | Workout Detail placeholder; shows route param `test-id`.      |
+| `/workout/test-id/setup`   | Camera Setup placeholder.                                     |
+| `/workout/test-id/active`  | Active Workout placeholder.                                   |
+| `/workout/test-id/summary` | Workout Summary placeholder.                                  |
+| `/progress`                | Progress placeholder; "Progress" tab active.                  |
+| `/profile`                 | Profile placeholder; "Profile" tab active.                    |
+| `/welcome`, `/onboarding`  | Phase 11 onboarding entry and screens 1–3; no bottom tab bar. |
+| `/login`, `/register`      | Auth-layout placeholders; no bottom tab bar.                  |
+| `/paywall`, `/permissions` | Modal-style placeholders; no bottom tab bar.                  |
+| `/some-unknown-route`      | 404 page with a "Back to Home" link.                          |
 
 `test-id` is an example URL string only — there is no fake workout data behind it.
 
@@ -476,7 +477,7 @@ pnpm build           # Confirms the launch + SW prompt bundle cleanly
 2. On the first paint, the inline pre-React HTML splash should appear on a dark `#0A0A0F` canvas with the **Motionly** wordmark and **Move Better.** tagline. This must paint without a white flash on any system theme (light or dark).
 3. As soon as React hydrates, the React `<LaunchScreen>` takes over on the same dark canvas. The wordmark scales `0.9 → 1.0` with a fade-in; the tagline fades in ~200ms after. Total visible launch ≈ 1.8s.
 4. After the launch window:
-   - At `/` (root), the URL is rewritten to `/welcome` because real auth + onboarding are deferred. The Phase 6 `WelcomePage` placeholder renders.
+   - At `/` (root), the URL is rewritten to `/welcome` because real auth + completed onboarding are deferred. The Phase 11 welcome entry screen renders.
    - At a direct deep link (`/welcome`, `/login`, `/onboarding`, `/workouts`, `/workout/test-id/setup`, `/some-unknown-route`, …), the launch screen still shows for ≈ 1.8s and then the same deep link renders. No redirect is applied.
 5. Phase 6 routing, the bottom tab bar on main routes, the PWA status pill, and light / dark theme switching must continue to behave as documented in §16c.
 
@@ -515,6 +516,37 @@ On a physical Android phone over LAN (`pnpm dev`) or a tunneled preview build:
 3. Confirm the React launch screen takes over without a visible re-paint of the background.
 4. Confirm total launch-to-destination duration is around 1.8s and within the master plan's 2s mid-range target.
 5. Confirm bottom safe-area inset is respected (no content under the nav handle on gesture-bar devices).
+
+## 16h. Onboarding Screens 1–3 Manual QA (Phase 11)
+
+Phase 11 adds one dependency, `zustand`, and uses it only for an in-memory onboarding draft. The same command checks apply:
+
+```bash
+pnpm install
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm build
+pnpm dev
+```
+
+Manual checks:
+
+- Open `/`. After the Phase 10 splash, the app should land on `/welcome`.
+- Open `/welcome`. Confirm the Motionly brand, "Move Better.", honest intro copy, "Get Started" CTA, and "Already have an account? Sign in" link render without fake account state.
+- Tap "Get Started". It should navigate to `/onboarding` and render step 1.
+- On `/onboarding`, step 1 should show the welcome headline, visible privacy copy, five progress dots, `1 / 5`, and a primary CTA.
+- Step 1 Continue should move to step 2. Step 2 Continue must stay disabled until at least one goal is selected.
+- Select multiple goals, go back to step 1, then continue again. The selected goals should still be selected.
+- Step 3 Continue must stay disabled until one fitness level is selected. Selecting a second level should replace the first.
+- Step 3 back should return to step 2 with all goal selections preserved.
+- Step 3 Continue should show the honest Phase 12 handoff. It must not navigate home, write `hasOnboarded`, request camera permission, or fake onboarding completion.
+- Refresh behavior is intentionally local: Phase 11 selections may reset after a full browser refresh because persistence is not implemented yet.
+- Check 5.0-inch and 6.7-inch mobile viewport sizes. Text should not overlap, the primary CTA should remain reachable, and the PWA status pill should remain visible.
+- Check keyboard navigation: back button, progress-back dots, goal cards, fitness cards, CTA, and sign-in link should all be reachable with visible focus.
+- Check reduced motion in DevTools. Step transitions should become instant or softened.
+- Check light and dark themes. All selected states must be visible without relying on color alone.
+- Confirm no fake users, workouts, stats, AI feedback, Supabase/auth/camera/ML code, `localStorage`, or IndexedDB writes were added.
 
 ## 17. Testing PWA Installability (Android Chrome)
 
@@ -621,24 +653,24 @@ After install:
 | `@router/`     | `src/router/`     |
 | `@i18n/`       | `src/i18n/`       |
 
-> **Phase 5 update:** Phase 4 created the aliased folder skeleton. `src/theme/` now contains real theme infrastructure and `src/hooks/useTheme.ts` re-exports the theme hook. The remaining folders stay reserved until their phases arrive. See [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) for the full map.
+> **Phase 11 update:** Phase 4 created the aliased folder skeleton. `src/theme/` contains real theme infrastructure, `src/hooks/useTheme.ts` re-exports the theme hook, `src/store/useOnboardingStore.ts` holds the in-memory onboarding draft, and `src/types/onboarding.ts` holds the Phase 11 onboarding types. The remaining folders stay reserved until their phases arrive. See [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) for the full map.
 
 ## 21. What the Current Foundation Intentionally Does NOT Include
 
 Per `MOTIONLY_MASTER_PLAN.md`, the following are deferred to their own phases. Do **not** add any of these until their phase is active:
 
-- Onboarding screens (Phases 11–12)
+- Onboarding screens 4–5, onboarding completion, and persistent onboarding writes (Phase 12 / Phase 30)
 - Dashboard, workout library, workout detail (Phases 13–15)
 - Camera permissions, MediaPipe, pose detection, exercise engines (Phases 16–24)
 - Voice feedback, skeleton overlay (Phases 25–26)
-- State management (Zustand) and IndexedDB writes (Phases 29–30)
+- Durable cross-feature state management and IndexedDB writes (Phases 29–30)
 - Supabase backend, authentication (Phases 31–32)
 - Stripe / Razorpay, paywall, free-tier limits (Phases 36–38)
 - i18n, Hindi pack (Phases 42–43)
 - Web Push, notifications (Phase 44)
 - Settings UI and accessibility audit (Phases 45–47)
 
-> Phase 10 (Splash & App Launch Experience) is complete. The inline HTML splash, the React `<LaunchScreen>`, the `<LaunchGate>` decision layer, and the service-worker update toast are wired up — but real onboarding, real `hasOnboarded` writes, real Supabase session rehydration, and real protected redirect rules are still deferred to their own phases.
+> Phase 11 is complete for onboarding screens 1–3 only. The `/welcome` entry screen and the first three internal `/onboarding` steps are live with in-memory selections, but screens 4–5, real `hasOnboarded` writes, real Supabase session rehydration, and real protected redirect rules are still deferred to their own phases.
 
 ## 22. Phase 2 Success Checklist
 

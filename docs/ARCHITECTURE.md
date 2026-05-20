@@ -64,12 +64,13 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/components/primitives/` | Phase 8 reusable UI primitives (`Button`, `Input`, `Card`, …).                        | Phase 8 — Component primitives |
 | `src/components/feedback/`   | Phase 9 feedback / status / progress components (`CircularProgress`, `Toast`, …).     | Phase 9 — Feedback components  |
 | `src/components/launch/`     | Phase 10 launch UI — animated `LaunchScreen` + SW update prompt hook.                 | Phase 10 — Splash & launch     |
+| `src/components/onboarding/` | Phase 11 onboarding flow components for screens 1–3.                                  | Phase 11 — Onboarding 1–3      |
 | `src/components/routing/`    | Phase 6 routing-infrastructure components (`RoutePlaceholder`, …).                    | Phase 6 — Routing              |
 | `src/launch/`                | Phase 10 launch orchestration — `LaunchGate`, `useLaunchDecision`, auth placeholder.  | Phase 10 — Splash & launch     |
 | `src/pages/`                 | Route-level screens. One file per top-level URL.                                      | Phase 10+                      |
 | `src/router/`                | React Router 6 config, guards, route params, navigation helpers, and routing layouts. | Phase 6 — Routing              |
 | `src/hooks/`                 | Custom React hooks shared across the app.                                             | As needed                      |
-| `src/store/`                 | Global state (Zustand stores).                                                        | Phase 29 — State management    |
+| `src/store/`                 | Global state (Zustand stores). Phase 11 starts with an in-memory onboarding draft.    | Phase 11+                      |
 | `src/services/`              | API clients (Supabase), analytics, subscriptions, persistence orchestration.          | Phase 31+                      |
 | `src/platform/`              | Thin adapters around browser-only APIs. The single chokepoint to the host.            | Phase 16+ (camera first)       |
 | `src/ml/`                    | On-device ML: pose, joint angles, exercise state machines.                            | Phase 17+                      |
@@ -82,7 +83,7 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/types/`                 | Cross-feature TypeScript domain types and ambient declarations.                       | As needed                      |
 | `src/workers/`               | Web Worker entry points (pose inference, heavy compute).                              | Phase 19                       |
 
-> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, and Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers. Product screens, state management, and feature logic remain deferred to their own phases.
+> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers, Phase 10 the launch layer, and Phase 11 the first in-memory onboarding store plus screens 1–3. Remaining product screens, durable persistence, and feature logic still land in their own phases.
 
 ---
 
@@ -236,6 +237,17 @@ Phase 9 now additionally delivers:
 - In-house Motionly-owned toast queue (no third-party toast library)
 - [`docs/COMPONENTS.md`](./COMPONENTS.md) §8 documenting the feedback library
 
+Phase 10 now additionally delivers the launch experience under `src/launch/`, `src/components/launch/`, and the read-only `src/platform/onboarding-storage.ts` adapter.
+
+Phase 11 now additionally delivers:
+
+- `/welcome` as the real onboarding entry page
+- `/onboarding` screens 1–3 as internal steps under one route
+- Onboarding components under `src/components/onboarding/`
+- Stable onboarding domain types under `src/types/onboarding.ts`
+- An in-memory-only Zustand draft store under `src/store/useOnboardingStore.ts`
+- `zustand` as the only state-management dependency introduced in this phase
+
 `src/components/routing/` remains the home of the Phase 6 routing-infrastructure components and is intentionally kept separate from `src/components/primitives/` and `src/components/feedback/`.
 
 These phases **intentionally do not**:
@@ -243,8 +255,8 @@ These phases **intentionally do not**:
 - Implement product screens, fake data, or feature behavior on top of the Phase 6 routing skeleton. Phase 6 wires URLs and route guards only; real screens and real data still arrive in their own phases.
 - Implement product screens or data-backed UI on top of the Phase 8 primitive library. Phase 8 ships presentational primitives only — `Button`, `Input`, `Card`, `Avatar`, etc. — with no fake users, workouts, stats, AI feedback, streaks, or subscription state.
 - Implement product screens or data-backed UI on top of the Phase 9 feedback library. Phase 9 ships presentational feedback / status / progress components only — `CircularProgress`, `LinearProgress`, `ScoreBadge`, `FormCueCard`, `RepCounter`, `WorkoutTimer`, `ToastProvider` / `useToast`, `SkeletonLoader`, `EmptyState`, `ErrorBoundary`, `ConfidenceIndicator` — with no internal score / rep / timer / confidence generation, no real ML outputs, no real workout data, no Web Push notifications, and no analytics.
-- Implement pages (`src/pages/`) — Phase 10+
-- Implement state management (`src/store/`) — Phase 29
+- Implement remaining product screens beyond the active phase.
+- Implement durable or cross-feature app state beyond the Phase 11 in-memory onboarding draft.
 - Implement camera, TTS, storage, or notification adapters (`src/platform/`) beyond the Phase 8 `haptics.ts` helper — Phase 16+
 - Implement pose detection or exercise engines (`src/ml/`, `src/workers/`) — Phase 17+
 - Implement Supabase, auth, payments, analytics, notifications, or i18n language packs — their respective phases
@@ -281,7 +293,7 @@ When a later phase asks you to build a feature, walk this checklist:
 6. **Put ML logic** in `src/ml/` (pure, testable) and run it inside a worker from `src/workers/` if it is heavy.
 7. **Define domain types** in `src/types/` when more than one module uses them; keep component prop types local.
 8. **Add hooks** in `src/hooks/` when React state needs to be shared across components.
-9. **Add stores** in `src/store/` (Zustand) for cross-page state once Phase 29 has introduced state management.
+9. **Add stores** in `src/store/` (Zustand) only when a phase explicitly introduces shared state. Phase 11's onboarding draft is in-memory only; broader cross-feature state still waits for the planned state-management phase.
 10. **Update docs.** If the feature changes setup, scripts, or architecture, update `docs/SETUP.md`, this file, or `docs/CODING_STANDARDS.md` accordingly.
 11. **Run** `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, and `pnpm build` before committing.
 12. **No fake data.** Do not ship placeholder users, workouts, stats, AI scores, or claims about features that don't exist.
@@ -466,6 +478,34 @@ Phase 10 wires Motionly's launch experience: a pre-React HTML splash in `index.h
 - **Writing `hasOnboarded`.** Phase 12 (onboarding completion) owns the write path. Phase 30 (storage adapter) introduces the IndexedDB schema the reader will eventually read.
 - **Real session rehydration.** Phase 32 (backend / auth) swaps the `getLaunchAuthState` placeholder for a real Supabase session read.
 - **Real protected redirect rules.** `<RequireAuth>` remains structural-only until Phase 32; the launch gate does not pre-implement production-grade redirect logic.
+
+---
+
+## 10g. Onboarding Flow: Screens 1–3 (Phase 11)
+
+Phase 11 turns the `/welcome` and `/onboarding` placeholders into the first half of the real onboarding flow, while keeping completion and persistence out of scope.
+
+### Module map
+
+| File / folder                       | Responsibility                                                                              |
+| ----------------------------------- | ------------------------------------------------------------------------------------------- |
+| `src/types/onboarding.ts`           | Stable IDs for Phase 11 onboarding goals, fitness levels, steps, and the draft shape.       |
+| `src/store/useOnboardingStore.ts`   | Zustand in-memory draft store for current step, selected goals, and selected fitness level. |
+| `src/components/onboarding/`        | Shared onboarding shell, progress dots, hero, screens 1–3, and Phase 12 handoff panel.      |
+| `src/pages/auth/WelcomePage.tsx`    | Mobile-first onboarding entry page; navigates to `/onboarding` or placeholder `/login`.     |
+| `src/pages/auth/OnboardingPage.tsx` | Single-route internal onboarding flow for steps 1–3, with Framer Motion transitions.        |
+
+### Responsibilities
+
+- **`useOnboardingStore`** holds only local draft selections. It does not use `localStorage`, IndexedDB, Supabase, auth state, or any backend. Refreshing the browser may reset the draft in Phase 11.
+- **`/onboarding`** keeps all Phase 11 steps inside one route, matching the Phase 7 wireframe. Progress shows all five planned steps, but Phase 11 only allows the user to move among steps 1–3.
+- **Step 3 handoff** is an honest temporary state. It explains that movement limitations and the camera tutorial arrive in Phase 12, and it does not mark onboarding complete.
+
+### Deferred to later phases
+
+- **Screens 4–5.** Movement limitations and camera tutorial are Phase 12.
+- **Completion writes.** Writing `hasOnboarded = true` remains Phase 12 / Phase 30 storage work.
+- **Camera, ML, auth, Supabase, dashboard, workouts, payments, analytics.** Phase 11 does not pre-implement or fake any of these systems.
 
 ---
 

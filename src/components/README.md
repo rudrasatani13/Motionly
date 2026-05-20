@@ -7,6 +7,7 @@ Shared, reusable **UI** components that can be composed by any page.
 ```
 src/components/
 ├── primitives/   ← Phase 8 reusable UI primitives
+├── onboarding/   ← Phase 11 onboarding flow components
 ├── routing/      ← Phase 6 routing-infrastructure components
 ├── index.ts      ← top-level barrel (re-exports both)
 └── README.md
@@ -23,6 +24,7 @@ documents intent:
 - Phase 8 primitives (`Button`, `Input`, `Text`, `Heading`, `Card`,
   `Divider`, `Spacer`, `Row`, `Column`, `Badge`, `Tag`, `Chip`, `Icon`,
   `Avatar`) under `primitives/`.
+- Phase 11 onboarding flow components under `onboarding/`.
 - Higher-level shared components used by more than one page.
 - Pure presentational components — props in, JSX out.
 - Components that may carry minimal local UI state (open/closed, hover,
@@ -52,6 +54,10 @@ documents intent:
 [`../../docs/COMPONENTS.md`](../../docs/COMPONENTS.md) for the
 inventory, accessibility rules, light/dark expectations, and the list
 of components intentionally deferred to Phase 9.
+
+**Phase 11 — Onboarding Flow: Screens 1–3** adds `onboarding/` for the
+welcome, goal, fitness level, shell, progress, and handoff components.
+These are product components, not new primitives.
 
 ### `primitives/`
 
