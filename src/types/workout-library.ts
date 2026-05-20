@@ -1,5 +1,5 @@
 /**
- * Phase 14 — Workout Library domain types.
+ * Phase 14 → Phase 15 — Workout Library domain types.
  *
  * These types describe the shape of Motionly's canonical browsing
  * catalog: workout summaries (cards on the Workouts tab) and exercise
@@ -11,11 +11,13 @@
  *   There are no fields for completion counts, ratings, popularity,
  *   form scores, AI feedback, or subscription state — those belong
  *   to later phases.
- * - Phase 15+ (workout detail, pre-workout, active workout) will
- *   extend these types with the per-exercise sequence and coaching
- *   notes. Until then, keep this file scoped to what the browse
- *   surface actually needs.
+ * - Phase 15 extends the same canonical catalog with workout detail
+ *   records: per-exercise sequence, authored coach notes, muscles
+ *   worked, and limitation tags for informational pre-workout copy.
+ *   Still no sessions, history, live camera, or generated results.
  */
+
+import type { MovementLimitation } from './onboarding';
 
 /** Granularity used in workout & exercise difficulty filters. */
 export type WorkoutDifficulty = 'beginner' | 'intermediate' | 'advanced';
@@ -68,6 +70,9 @@ export type MuscleGroup =
  */
 export type LibraryArtworkTone = 'primary' | 'accent' | 'neutral' | 'warning' | 'sky' | 'rose';
 
+/** Specific limitation areas collected in onboarding, excluding "none". */
+export type WorkoutLimitationArea = Exclude<MovementLimitation, 'none'>;
+
 /** Minimum data the Workouts tab needs to render a card. */
 export type WorkoutSummary = {
   /** Stable id used for `/workouts/:id` and React keys. */
@@ -92,6 +97,75 @@ export type WorkoutSummary = {
   coachingFocus: string;
   /** Optional token-based artwork tone. Defaults to `primary`. */
   artworkTone?: LibraryArtworkTone;
+};
+
+/** Rep-based or time-based prescription for a sequence row. */
+export type WorkoutExerciseSet =
+  | {
+      /** Rep-based movement. */
+      type: 'reps';
+      /** Number of sets in the planned sequence. */
+      sets: number;
+      /** Authored rep target, e.g. "8-10" or "6 per side". */
+      reps: string;
+    }
+  | {
+      /** Time-based movement. */
+      type: 'timed';
+      /** Number of sets in the planned sequence. */
+      sets: number;
+      /** Seconds per set. */
+      seconds: number;
+    };
+
+/** Single ordered movement within a workout detail sequence. */
+export type WorkoutExerciseSequenceItem = {
+  /** Stable exercise id from `EXERCISE_CATALOG`. */
+  exerciseId: string;
+  /** One-based display order. */
+  order: number;
+  /** Planned sets and reps / seconds. */
+  set: WorkoutExerciseSet;
+  /** Rest after the movement, in seconds. */
+  restSeconds: number;
+  /** Optional authored setup or pacing note for the preview row. */
+  note?: string;
+  /** Optional override when the workout wants a narrower muscle focus. */
+  targetMuscles?: MuscleGroup[];
+  /** Limitation areas this movement may involve. Used for gentle warnings. */
+  limitationTags?: WorkoutLimitationArea[];
+};
+
+/** Summary of muscles worked by a workout detail sequence. */
+export type WorkoutMuscleGroupSummary = {
+  /** Main groups the workout is designed around. */
+  primary: MuscleGroup[];
+  /** Supporting groups that appear in the sequence. */
+  secondary?: MuscleGroup[];
+};
+
+/** Full detail record for `/workouts/:id`. */
+export type WorkoutDetail = WorkoutSummary & {
+  /** Short authored note shown before the user starts. */
+  coachNote: string;
+  /** Main muscle groups for the workout. */
+  primaryMusclesWorked: MuscleGroup[];
+  /** Supporting muscle groups, if useful for this workout. */
+  secondaryMusclesWorked?: MuscleGroup[];
+  /** Ordered sequence preview for the pre-workout screen. */
+  exerciseSequence: WorkoutExerciseSequenceItem[];
+};
+
+/** Informational conflict between real onboarding limitations and a workout sequence. */
+export type WorkoutLimitationConflict = {
+  /** Area selected in onboarding. */
+  area: WorkoutLimitationArea;
+  /** Human-readable area label, e.g. "lower back". */
+  areaLabel: string;
+  /** Movement categories involved, based on exercise ids / tags. */
+  movementTypes: string[];
+  /** Exercise ids in the selected workout that contributed to the conflict. */
+  exerciseIds: string[];
 };
 
 /** Minimum data the Exercises tab needs to render a card. */

@@ -21,7 +21,13 @@
  *   until a real database/seed layer lands.
  */
 
-import type { ExerciseSummary, WorkoutSummary } from '@/types/workout-library';
+import type {
+  ExerciseSummary,
+  WorkoutDetail,
+  WorkoutExerciseSequenceItem,
+  WorkoutLimitationArea,
+  WorkoutSummary,
+} from '@/types/workout-library';
 
 /**
  * Canonical workouts available in the browse surface.
@@ -457,6 +463,434 @@ export const EXERCISE_CATALOG: ReadonlyArray<ExerciseSummary> = [
   },
 ];
 
+const EXERCISE_LIMITATION_TAGS: Record<string, WorkoutLimitationArea[]> = {
+  'bodyweight-squat': ['knees', 'hips', 'ankles'],
+  'reverse-lunge': ['knees', 'hips', 'ankles'],
+  'glute-bridge': ['hips'],
+  'incline-push-up': ['shoulders', 'wrists'],
+  plank: ['lower_back', 'shoulders', 'wrists'],
+  'dead-bug': ['lower_back'],
+  'bird-dog': ['lower_back', 'wrists'],
+  'hip-hinge': ['lower_back', 'hips'],
+  'shoulder-taps': ['shoulders', 'wrists'],
+  'calf-raise': ['knees', 'ankles'],
+  'cat-cow': [],
+  'standing-hamstring-walkout': ['lower_back', 'hips'],
+  'wall-press': ['shoulders'],
+};
+
+function withLimitationTags(
+  item: Omit<WorkoutExerciseSequenceItem, 'limitationTags'>,
+): WorkoutExerciseSequenceItem {
+  return {
+    ...item,
+    limitationTags: EXERCISE_LIMITATION_TAGS[item.exerciseId] ?? [],
+  };
+}
+
+type WorkoutDetailFields = Omit<
+  WorkoutDetail,
+  | keyof WorkoutSummary
+  | 'id'
+  | 'name'
+  | 'description'
+  | 'durationMinutes'
+  | 'exerciseCount'
+  | 'difficulty'
+  | 'categories'
+  | 'equipment'
+  | 'accessTier'
+  | 'artworkTone'
+>;
+
+function workoutSummary(id: string): WorkoutSummary {
+  const workout = WORKOUT_CATALOG.find((item) => item.id === id);
+  if (workout === undefined) {
+    throw new Error(`Workout detail references unknown workout id: ${id}`);
+  }
+  return workout;
+}
+
+function createWorkoutDetail(id: string, fields: WorkoutDetailFields): WorkoutDetail {
+  const summary = workoutSummary(id);
+  if (summary.exerciseCount !== fields.exerciseSequence.length) {
+    throw new Error(`Workout detail sequence count does not match summary for ${id}`);
+  }
+  return {
+    ...summary,
+    ...fields,
+  };
+}
+
+/**
+ * Canonical workout detail records used by `/workouts/:id`.
+ *
+ * These extend the Phase 14 browse catalog with authored sequence
+ * content for Phase 15. They remain static product content — no user
+ * completion state, ratings, calories, popularity, history, or live
+ * coaching output lives here.
+ */
+export const WORKOUT_DETAIL_CATALOG: ReadonlyArray<WorkoutDetail> = [
+  createWorkoutDetail('lower-body-foundations', {
+    coachNote:
+      'Move at a steady pace and rest whenever you need it. Camera setup comes next; stop any movement that hurts or feels wrong.',
+    primaryMusclesWorked: ['legs', 'glutes'],
+    secondaryMusclesWorked: ['hips', 'core'],
+    exerciseSequence: [
+      withLimitationTags({
+        order: 1,
+        exerciseId: 'bodyweight-squat',
+        set: { type: 'reps', sets: 2, reps: '8-10' },
+        restSeconds: 45,
+        note: 'Use a comfortable depth and keep both feet grounded.',
+      }),
+      withLimitationTags({
+        order: 2,
+        exerciseId: 'hip-hinge',
+        set: { type: 'reps', sets: 2, reps: '8-10' },
+        restSeconds: 30,
+        note: 'Hinge from the hips with soft knees and a long spine.',
+      }),
+      withLimitationTags({
+        order: 3,
+        exerciseId: 'glute-bridge',
+        set: { type: 'reps', sets: 2, reps: '10-12' },
+        restSeconds: 30,
+        note: 'Pause at the top without arching through your low back.',
+      }),
+      withLimitationTags({
+        order: 4,
+        exerciseId: 'reverse-lunge',
+        set: { type: 'reps', sets: 2, reps: '6 per side' },
+        restSeconds: 45,
+        note: 'Step back only as far as you can control smoothly.',
+      }),
+      withLimitationTags({
+        order: 5,
+        exerciseId: 'calf-raise',
+        set: { type: 'reps', sets: 2, reps: '12-15' },
+        restSeconds: 30,
+        note: 'Rise and lower slowly instead of bouncing.',
+      }),
+    ],
+  }),
+  createWorkoutDetail('push-and-pull-basics', {
+    coachNote:
+      'Keep each rep quiet and controlled. If a pressing movement feels uncomfortable, raise the surface or skip that set.',
+    primaryMusclesWorked: ['chest', 'shoulders', 'arms'],
+    secondaryMusclesWorked: ['core'],
+    exerciseSequence: [
+      withLimitationTags({
+        order: 1,
+        exerciseId: 'wall-press',
+        set: { type: 'reps', sets: 2, reps: '10-12' },
+        restSeconds: 30,
+        note: 'Start tall and keep your shoulders relaxed.',
+      }),
+      withLimitationTags({
+        order: 2,
+        exerciseId: 'incline-push-up',
+        set: { type: 'reps', sets: 2, reps: '6-8' },
+        restSeconds: 45,
+        note: 'Choose a higher surface if you want a gentler angle.',
+      }),
+      withLimitationTags({
+        order: 3,
+        exerciseId: 'plank',
+        set: { type: 'timed', sets: 2, seconds: 20 },
+        restSeconds: 45,
+        note: 'Drop to the knees if your brace starts to fade.',
+      }),
+      withLimitationTags({
+        order: 4,
+        exerciseId: 'shoulder-taps',
+        set: { type: 'reps', sets: 2, reps: '5 per side' },
+        restSeconds: 45,
+        note: 'Move one hand at a time while keeping the hips still.',
+      }),
+    ],
+  }),
+  createWorkoutDetail('mobility-reset', {
+    coachNote:
+      'Use this as a reset, not a test. Stay inside an easy range and let the camera setup step happen only after you choose to start.',
+    primaryMusclesWorked: ['hips', 'back', 'shoulders'],
+    secondaryMusclesWorked: ['core', 'glutes'],
+    exerciseSequence: [
+      withLimitationTags({
+        order: 1,
+        exerciseId: 'cat-cow',
+        set: { type: 'reps', sets: 1, reps: '6-8 cycles' },
+        restSeconds: 15,
+        note: 'Match the movement to easy breathing.',
+      }),
+      withLimitationTags({
+        order: 2,
+        exerciseId: 'hip-hinge',
+        set: { type: 'reps', sets: 1, reps: '8' },
+        restSeconds: 20,
+        note: 'Treat this as practice, not a strength set.',
+      }),
+      withLimitationTags({
+        order: 3,
+        exerciseId: 'standing-hamstring-walkout',
+        set: { type: 'reps', sets: 1, reps: '4 cycles' },
+        restSeconds: 30,
+        note: 'Bend the knees as much as needed on the way down.',
+      }),
+      withLimitationTags({
+        order: 4,
+        exerciseId: 'glute-bridge',
+        set: { type: 'reps', sets: 1, reps: '10' },
+        restSeconds: 20,
+        note: 'Lift only to a range that feels smooth.',
+      }),
+      withLimitationTags({
+        order: 5,
+        exerciseId: 'bird-dog',
+        set: { type: 'reps', sets: 1, reps: '6 per side' },
+        restSeconds: 30,
+        note: 'Reach long without twisting through the torso.',
+      }),
+      withLimitationTags({
+        order: 6,
+        exerciseId: 'wall-press',
+        set: { type: 'reps', sets: 1, reps: '10' },
+        restSeconds: 20,
+        note: 'Use this as a light shoulder warm-up.',
+      }),
+    ],
+  }),
+  createWorkoutDetail('quick-core-15', {
+    coachNote:
+      'Breathe through every hold and keep the work controlled. Rest early if your position changes or anything feels off.',
+    primaryMusclesWorked: ['core'],
+    secondaryMusclesWorked: ['shoulders', 'back', 'glutes'],
+    exerciseSequence: [
+      withLimitationTags({
+        order: 1,
+        exerciseId: 'plank',
+        set: { type: 'timed', sets: 3, seconds: 30 },
+        restSeconds: 45,
+        note: 'Keep the hips level and breathe steadily.',
+      }),
+      withLimitationTags({
+        order: 2,
+        exerciseId: 'dead-bug',
+        set: { type: 'reps', sets: 3, reps: '6 per side' },
+        restSeconds: 30,
+        note: 'Move slowly enough that your ribs stay quiet.',
+      }),
+      withLimitationTags({
+        order: 3,
+        exerciseId: 'bird-dog',
+        set: { type: 'reps', sets: 3, reps: '6 per side' },
+        restSeconds: 30,
+        note: 'Pause briefly with the arm and leg extended.',
+      }),
+      withLimitationTags({
+        order: 4,
+        exerciseId: 'shoulder-taps',
+        set: { type: 'reps', sets: 2, reps: '6 per side' },
+        restSeconds: 45,
+        note: 'Use a wider foot stance if the hips start to rock.',
+      }),
+      withLimitationTags({
+        order: 5,
+        exerciseId: 'glute-bridge',
+        set: { type: 'reps', sets: 2, reps: '12' },
+        restSeconds: 30,
+        note: 'Finish by resetting the hips with smooth reps.',
+      }),
+    ],
+  }),
+  createWorkoutDetail('full-body-flow', {
+    coachNote:
+      'This one moves through the whole body, so keep transitions calm. Rest between sets and let smooth form matter more than speed.',
+    primaryMusclesWorked: ['full_body'],
+    secondaryMusclesWorked: ['legs', 'glutes', 'core', 'chest', 'shoulders', 'back'],
+    exerciseSequence: [
+      withLimitationTags({
+        order: 1,
+        exerciseId: 'standing-hamstring-walkout',
+        set: { type: 'reps', sets: 2, reps: '4 cycles' },
+        restSeconds: 30,
+        note: 'Warm up the hinge and plank shapes before strength work.',
+      }),
+      withLimitationTags({
+        order: 2,
+        exerciseId: 'bodyweight-squat',
+        set: { type: 'reps', sets: 3, reps: '8' },
+        restSeconds: 45,
+        note: 'Choose a depth you can repeat consistently.',
+      }),
+      withLimitationTags({
+        order: 3,
+        exerciseId: 'incline-push-up',
+        set: { type: 'reps', sets: 3, reps: '6' },
+        restSeconds: 45,
+        note: 'Keep one straight line from head to heels.',
+      }),
+      withLimitationTags({
+        order: 4,
+        exerciseId: 'glute-bridge',
+        set: { type: 'reps', sets: 3, reps: '10' },
+        restSeconds: 30,
+        note: 'Squeeze at the top and lower without rushing.',
+      }),
+      withLimitationTags({
+        order: 5,
+        exerciseId: 'plank',
+        set: { type: 'timed', sets: 3, seconds: 25 },
+        restSeconds: 45,
+        note: 'Use knees-down planks if that helps you keep control.',
+      }),
+      withLimitationTags({
+        order: 6,
+        exerciseId: 'reverse-lunge',
+        set: { type: 'reps', sets: 2, reps: '6 per side' },
+        restSeconds: 45,
+        note: 'Step back softly and stand through the front foot.',
+      }),
+      withLimitationTags({
+        order: 7,
+        exerciseId: 'bird-dog',
+        set: { type: 'reps', sets: 2, reps: '8 per side' },
+        restSeconds: 30,
+        note: 'Finish with slow reaches and a quiet torso.',
+      }),
+    ],
+  }),
+  createWorkoutDetail('hip-mobility-flow', {
+    coachNote:
+      'Keep the range gentle and repeatable. This Pro-tagged workout is static catalog content; real subscription access arrives later.',
+    primaryMusclesWorked: ['hips', 'glutes'],
+    secondaryMusclesWorked: ['back', 'core', 'legs'],
+    exerciseSequence: [
+      withLimitationTags({
+        order: 1,
+        exerciseId: 'cat-cow',
+        set: { type: 'reps', sets: 1, reps: '8 cycles' },
+        restSeconds: 15,
+        note: 'Start by finding easy motion through the spine.',
+      }),
+      withLimitationTags({
+        order: 2,
+        exerciseId: 'hip-hinge',
+        set: { type: 'reps', sets: 2, reps: '8' },
+        restSeconds: 30,
+        note: 'Keep the hips moving back instead of dropping down.',
+      }),
+      withLimitationTags({
+        order: 3,
+        exerciseId: 'standing-hamstring-walkout',
+        set: { type: 'reps', sets: 2, reps: '4 cycles' },
+        restSeconds: 30,
+        note: 'Walk only as far as your position stays controlled.',
+      }),
+      withLimitationTags({
+        order: 4,
+        exerciseId: 'glute-bridge',
+        set: { type: 'reps', sets: 2, reps: '12' },
+        restSeconds: 30,
+        note: 'Drive evenly through both feet.',
+      }),
+      withLimitationTags({
+        order: 5,
+        exerciseId: 'reverse-lunge',
+        set: { type: 'reps', sets: 2, reps: '5 per side' },
+        restSeconds: 45,
+        note: 'Use a short step and a small range if needed.',
+      }),
+    ],
+  }),
+  createWorkoutDetail('core-and-control', {
+    coachNote:
+      'This is deliberate core practice. Take longer rests if needed and keep every rep slow enough to stay steady.',
+    primaryMusclesWorked: ['core'],
+    secondaryMusclesWorked: ['shoulders', 'back', 'glutes'],
+    exerciseSequence: [
+      withLimitationTags({
+        order: 1,
+        exerciseId: 'plank',
+        set: { type: 'timed', sets: 3, seconds: 35 },
+        restSeconds: 45,
+        note: 'Make the hold quiet before adding harder variations.',
+      }),
+      withLimitationTags({
+        order: 2,
+        exerciseId: 'dead-bug',
+        set: { type: 'reps', sets: 3, reps: '8 per side' },
+        restSeconds: 30,
+        note: 'Extend only as far as your brace stays consistent.',
+      }),
+      withLimitationTags({
+        order: 3,
+        exerciseId: 'bird-dog',
+        set: { type: 'reps', sets: 3, reps: '8 per side' },
+        restSeconds: 30,
+        note: 'Reach long and pause before returning.',
+      }),
+      withLimitationTags({
+        order: 4,
+        exerciseId: 'shoulder-taps',
+        set: { type: 'reps', sets: 3, reps: '8 per side' },
+        restSeconds: 45,
+        note: 'Move slowly enough that the hips do not sway.',
+      }),
+      withLimitationTags({
+        order: 5,
+        exerciseId: 'glute-bridge',
+        set: { type: 'reps', sets: 2, reps: '15' },
+        restSeconds: 30,
+        note: 'Use this to reset the hips after bracing work.',
+      }),
+      withLimitationTags({
+        order: 6,
+        exerciseId: 'standing-hamstring-walkout',
+        set: { type: 'reps', sets: 2, reps: '5 cycles' },
+        restSeconds: 45,
+        note: 'Walk out and back with control rather than speed.',
+      }),
+    ],
+  }),
+  createWorkoutDetail('evening-wind-down', {
+    coachNote:
+      'Keep this light and unhurried. The goal is to finish feeling calmer, so skip anything that does not feel right today.',
+    primaryMusclesWorked: ['full_body'],
+    secondaryMusclesWorked: ['hips', 'back', 'core', 'glutes'],
+    exerciseSequence: [
+      withLimitationTags({
+        order: 1,
+        exerciseId: 'cat-cow',
+        set: { type: 'reps', sets: 1, reps: '8 cycles' },
+        restSeconds: 15,
+        note: 'Let each breath guide one smooth cycle.',
+      }),
+      withLimitationTags({
+        order: 2,
+        exerciseId: 'glute-bridge',
+        set: { type: 'reps', sets: 1, reps: '10' },
+        restSeconds: 20,
+        note: 'Move gently and avoid forcing the top position.',
+      }),
+      withLimitationTags({
+        order: 3,
+        exerciseId: 'dead-bug',
+        set: { type: 'reps', sets: 1, reps: '6 per side' },
+        restSeconds: 20,
+        note: 'Use a short range and steady breathing.',
+      }),
+      withLimitationTags({
+        order: 4,
+        exerciseId: 'hip-hinge',
+        set: { type: 'reps', sets: 1, reps: '8' },
+        restSeconds: 20,
+        note: 'Finish tall and relaxed after each rep.',
+      }),
+    ],
+  }),
+];
+
 /**
  * Look up a single workout by id. Returns `undefined` when the id
  * does not exist in the catalog — callers must handle that case
@@ -469,4 +903,16 @@ export function findWorkoutById(id: string): WorkoutSummary | undefined {
 /** Look up a single exercise by id. */
 export function findExerciseById(id: string): ExerciseSummary | undefined {
   return EXERCISE_CATALOG.find((exercise) => exercise.id === id);
+}
+
+/** Look up the Phase 15 detail record for a workout id. */
+export function findWorkoutDetailById(id: string): WorkoutDetail | undefined {
+  return WORKOUT_DETAIL_CATALOG.find((workout) => workout.id === id);
+}
+
+/** Return the ordered exercise sequence for a workout detail, if present. */
+export function findWorkoutExerciseSequence(
+  id: string,
+): ReadonlyArray<WorkoutExerciseSequenceItem> | undefined {
+  return findWorkoutDetailById(id)?.exerciseSequence;
 }

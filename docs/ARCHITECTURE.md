@@ -66,6 +66,7 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/components/feedback/`        | Phase 9 feedback / status / progress components (`CircularProgress`, `Toast`, …).                                                                                     | Phase 9 — Feedback components  |
 | `src/components/dashboard/`       | Phase 13 dashboard cards, header, quick-start, stats, and empty states.                                                                                               | Phase 13 — Dashboard screen    |
 | `src/components/workout-library/` | Phase 14 workout library composites — header, tab switcher, filter chips, workout/exercise cards, locked-content badge, empty state, and exercise quick-detail panel. | Phase 14 — Workout Library     |
+| `src/components/workout-detail/`  | Phase 15 workout detail / pre-workout composites — hero, meta, muscles, sequence preview, coach note, limitation warning, actions, loading, and not-found states.     | Phase 15 — Workout Detail      |
 | `src/components/launch/`          | Phase 10 launch UI — animated `LaunchScreen` + SW update prompt hook.                                                                                                 | Phase 10 — Splash & launch     |
 | `src/components/onboarding/`      | Phase 11–12 onboarding flow components (welcome, goal, fitness level, limitations, camera tutorial).                                                                  | Phase 11–12 — Onboarding       |
 | `src/components/routing/`         | Phase 6 routing-infrastructure components (`RoutePlaceholder`, …).                                                                                                    | Phase 6 — Routing              |
@@ -86,7 +87,7 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/types/`                      | Cross-feature TypeScript domain types and ambient declarations.                                                                                                       | As needed                      |
 | `src/workers/`                    | Web Worker entry points (pose inference, heavy compute).                                                                                                              | Phase 19                       |
 
-> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers, Phase 10 the launch layer, Phase 11 the first in-memory onboarding store plus screens 1–3, Phase 12 onboarding completion storage, and Phase 13 the Home dashboard. Phase 14 adds the real Workout Library — `src/types/workout-library.ts` (domain types), `src/data/workout-library.ts` (canonical static catalog), `src/utils/workout-library.ts` (pure filter/search/sort helpers), `src/hooks/useDebouncedValue.ts` (generic debounce), and `src/components/workout-library/` (header, tab switcher, filter chips, workout/exercise cards, locked-content badge, empty state, and exercise quick-detail panel). Remaining product screens, durable cross-feature persistence, and feature logic still land in their own phases.
+> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers, Phase 10 the launch layer, Phase 11 the first in-memory onboarding store plus screens 1–3, Phase 12 onboarding completion storage, and Phase 13 the Home dashboard. Phase 14 adds the real Workout Library — `src/types/workout-library.ts` (domain types), `src/data/workout-library.ts` (canonical static catalog), `src/utils/workout-library.ts` (pure filter/search/sort helpers), `src/hooks/useDebouncedValue.ts` (generic debounce), and `src/components/workout-library/` (header, tab switcher, filter chips, workout/exercise cards, locked-content badge, empty state, and exercise quick-detail panel). Phase 15 extends that catalog with workout detail sequences, adds `src/utils/workout-limitations.ts`, `src/hooks/useWorkoutDetailData.ts`, and `src/components/workout-detail/` for the real pre-workout screen. Remaining product screens, durable cross-feature persistence, and feature logic still land in their own phases.
 
 ---
 
@@ -325,7 +326,7 @@ Motionly uses **React Router 6**. The routing source of truth is `src/router/rou
 | `src/router/layouts/MainLayout.tsx`                  | Layout for main routes; renders the bottom tab bar.                                   |
 | `src/components/routing/RoutePlaceholder.tsx`        | Skeleton component every Phase 6 page renders.                                        |
 | `src/components/routing/BottomTabBar.tsx`            | NavLink-based mobile bottom tab bar.                                                  |
-| `src/components/routing/ServiceWorkerStatusPill.tsx` | PWA / service-worker status pill, shown by both layouts.                              |
+| `src/components/routing/ServiceWorkerStatusPill.tsx` | Optional PWA / service-worker status pill component, not rendered in current layouts. |
 | `src/hooks/useNavigation.ts`                         | Typed wrapper around `useNavigate()`. Use this — do not inline route strings.         |
 
 ### Rules
@@ -333,7 +334,7 @@ Motionly uses **React Router 6**. The routing source of truth is `src/router/rou
 - **No inline route strings.** Import from `ROUTE_PATHS` or call a `buildWorkout*Path(id)` helper. The same rule covers programmatic navigation — use `useNavigation()` instead of `useNavigate()` + literal URLs.
 - **Routes live in `src/router/`.** Page components live in `src/pages/`. The router knows about pages; pages must not know about the router beyond the `useParams` types in `routeTypes.ts`.
 - **Every route module is lazy.** All entries in `routes.tsx` use `React.lazy()`. Synchronous route imports defeat the bundle-splitting goal from the master plan.
-- **Layouts own chrome.** The bottom tab bar and PWA status pill render once at the layout level, not per page.
+- **Layouts own chrome.** The bottom tab bar renders once at the layout level, not per page.
 - **No fake data in route skeletons.** Phase 6 placeholder pages must not invent users, workouts, stats, AI feedback, streaks, or subscription state.
 
 ## 10b. RequireAuth: Structural Only Until Phase 32
@@ -394,7 +395,7 @@ Phase 8 adds Motionly's reusable UI primitives under `src/components/primitives/
 ### Rules
 
 - **Use primitives before inventing one-off UI.** When you build a screen in a later phase, reach for `Button` / `Input` / `Card` / `Row` / `Column` first. Add a new primitive only when the composition is reused in multiple screens.
-- **Routing-infrastructure components stay separate.** `src/components/routing/` is not the primitive library. Keep `RoutePlaceholder`, `BottomTabBar`, and `ServiceWorkerStatusPill` there until they are revisited / refactored.
+- **Routing-infrastructure components stay separate.** `src/components/routing/` is not the primitive library. Keep `RoutePlaceholder`, `BottomTabBar`, and optional routing/status chrome there until they are revisited / refactored.
 - **No hardcoded colors.** Primitives use Motionly Tailwind tokens (`bg-motionly-*`, `text-motionly-*`, `border-motionly-*`). Hex values stay in `tailwind.config.ts`.
 - **No fake data in primitives.** `Avatar` does not invent initials, `Badge` / `Chip` / `Tag` do not invent labels, and `Button` does not show fabricated success / progress messaging.
 - **Browser APIs go through `src/platform/`.** The `Button` triggers haptic feedback by calling `triggerLightHaptic()` from `@platform/haptics`, not `navigator.vibrate` directly.
@@ -590,18 +591,45 @@ Phase 14 ships the real Motionly browsing surface at `/workouts`. The library is
 
 ### Canonical product content vs user data
 
-`src/data/workout-library.ts` is a **canonical static catalog**. It describes the movements Motionly will eventually coach — the same kind of content a marketing site might call "the exercise library." It is NOT:
+`src/data/workout-library.ts` is a **canonical static catalog**. It describes the movements Motionly will eventually coach and now includes Phase 15 workout detail sequences. It is the same kind of content a marketing site might call "the exercise library." It is NOT:
 
 - Fake/demo/sample data masquerading as real activity.
 - User data (no completions, ratings, popularity, calories, form scores, AI feedback).
-- A database. Phase 30 will introduce a real seed/database layer; until then, this file is the single source of truth and Phase 15 (workout detail) will read by id from it.
+- A database. Phase 30 will introduce a real seed/database layer; until then, this file is the single source of truth for library summaries and workout detail records.
 
 ### Deferred to later phases
 
-- Workout detail page (`/workouts/:id`) — Phase 15 still renders a placeholder.
 - Camera setup, active workout, summary — Phases 16+.
 - Real subscription state — Phase 36+. Phase 14's locked Pro cards are structural only; tapping them routes to the `/paywall` placeholder with an honest toast.
 - Workout history, completion records, recommendations — later phases tied to ML and persistence.
+
+## 10k. Workout Detail & Pre-Workout Screen (Phase 15)
+
+Phase 15 replaces the `/workouts/:id` placeholder with a real pre-workout detail screen. It is local-only and presentational, with one async read from the existing onboarding storage adapter for limitation warnings.
+
+### Files
+
+| Path                                      | Responsibility                                                                                                                                  |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/types/workout-library.ts`            | Adds detail sequence types, `WorkoutDetail`, `WorkoutExerciseSequenceItem`, `WorkoutExerciseSet`, and limitation conflict types.                |
+| `src/data/workout-library.ts`             | Extends the canonical static catalog with one detail record per workout and helpers such as `findWorkoutDetailById()`.                          |
+| `src/utils/workout-limitations.ts`        | Pure helper that compares real onboarding limitations to exercise sequence limitation tags. No React, DOM, network, or scoring.                 |
+| `src/hooks/useWorkoutDetailData.ts`       | Reads the static workout detail, reads the real Phase 12 onboarding completion record, and exposes loading / not-found / locked / ready states. |
+| `src/components/workout-detail/`          | Presentational components for hero, meta, muscle chips, sequence list, coach note, limitation warning, actions, skeleton, and not-found UI.     |
+| `src/pages/workout/WorkoutDetailPage.tsx` | Route composition for `/workouts/:id`, including Start Workout and locked-content navigation behavior.                                          |
+
+### Responsibilities
+
+- **Static canonical content only.** Workout details are authored product content in `src/data/workout-library.ts`; they do not contain completion counts, calories, ratings, popularity, form scores, history, sessions, or generated coaching results.
+- **Real limitations only.** Limitation warnings render only when `readOnboardingCompletion()` returns a real Phase 12 record with matching limitation areas. Missing storage, malformed data, empty limitations, or `none` all show no personalized warning.
+- **Start Workout handoff only.** Free workouts navigate to `/workout/:id/setup`, which remains the Phase 16 placeholder. Phase 15 does not request camera permission, open a live preview, create a workout session, or route to the active workout screen.
+- **Locked content stays structural.** `accessTier: 'pro'` is catalog metadata, not real subscription state. Locked workouts route to `/paywall` with honest toast copy; payment/subscription logic remains deferred.
+
+### Deferred to later phases
+
+- Camera permission and setup UI — Phase 16.
+- Live camera preview, pose detection, active workout, rep counting, form scoring, and voice cues — Phase 16+.
+- Workout session records, history, analytics, Supabase/auth, and real subscription state — later phases.
 
 ---
 

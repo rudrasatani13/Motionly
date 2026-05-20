@@ -12,6 +12,18 @@ Show the full plan of a workout before the user commits to it. Answers: "What am
 
 **Phase 15 — Workout Detail & Pre-Workout Screen.**
 
+## Phase 15 implementation note
+
+Phase 15 now implements `/workouts/:id` as a real pre-workout detail screen backed by the canonical static workout catalog in `src/data/workout-library.ts`. The screen includes the abstract hero, meta row, ordered exercise sequence, muscles worked, coach's note, Start Workout action, locked-content handling, and gentle limitation warnings based only on the real Phase 12 onboarding completion record.
+
+Intentional divergences from the early wireframe:
+
+- Limitation warnings do **not** claim Motionly has added a gentler variation yet. Phase 15 only informs the user and suggests moving slowly, reducing range, skipping uncomfortable movements, or choosing another workout.
+- Exercise rows are a preview list in Phase 15. A deeper exercise-detail route or modal can land later.
+- Start Workout routes to `/workout/:id/setup`, which remains the Phase 16 placeholder. Phase 15 does not request camera permission, open a live camera preview, or start an active workout.
+
+Full camera permission, live setup, silhouette guidance, and any camera/ML checks remain Phase 16 and later.
+
 ## Entry points
 
 - Tap on a workout card in the library (Phase 14).
@@ -20,7 +32,7 @@ Show the full plan of a workout before the user commits to it. Answers: "What am
 
 ## Exit points
 
-- "Start workout" CTA → `/workout/:id/setup` (camera setup).
+- "Start workout" CTA → `/workout/:id/setup` (Phase 16 camera setup placeholder in Phase 15).
 - Back navigation → previous screen (library or dashboard).
 - Tap an exercise row → exercise detail (modal or push, Phase 14 / 15 decision).
 - Limitation conflict banner CTA → swap to an alternative workout (Phase 34+).

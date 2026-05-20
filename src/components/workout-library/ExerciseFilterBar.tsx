@@ -87,7 +87,7 @@ export function ExerciseFilterBar({
         <Row
           align="center"
           gap="xs"
-          className="-mx-1 w-full overflow-x-auto px-1 pb-1"
+          className="motionly-scrollbar-hidden -mx-1 w-full overflow-x-auto px-1"
           wrap={false}
         >
           <Chip

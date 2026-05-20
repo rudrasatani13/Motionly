@@ -383,29 +383,30 @@ After `pnpm install`, validate the routing skeleton in both `pnpm dev` and `pnpm
 
 ### Routes to open manually
 
-| URL                        | Expectation                                                   |
-| -------------------------- | ------------------------------------------------------------- |
-| `/`                        | Phase 13 dashboard with bottom tab bar; "Home" active.        |
-| `/workouts`                | Workout Library placeholder; "Workouts" active.               |
-| `/workouts/test-id`        | Workout Detail placeholder; shows route param `test-id`.      |
-| `/workout/test-id/setup`   | Camera Setup placeholder.                                     |
-| `/workout/test-id/active`  | Active Workout placeholder.                                   |
-| `/workout/test-id/summary` | Workout Summary placeholder.                                  |
-| `/progress`                | Progress placeholder; "Progress" tab active.                  |
-| `/profile`                 | Profile placeholder; "Profile" tab active.                    |
-| `/welcome`, `/onboarding`  | Phase 11 onboarding entry and screens 1–3; no bottom tab bar. |
-| `/login`, `/register`      | Auth-layout placeholders; no bottom tab bar.                  |
-| `/paywall`, `/permissions` | Modal-style placeholders; no bottom tab bar.                  |
-| `/some-unknown-route`      | 404 page with a "Back to Home" link.                          |
+| URL                                | Expectation                                                   |
+| ---------------------------------- | ------------------------------------------------------------- |
+| `/`                                | Phase 13 dashboard with bottom tab bar; "Home" active.        |
+| `/workouts`                        | Phase 14 Workout Library; "Workouts" active.                  |
+| `/workouts/lower-body-foundations` | Phase 15 Workout Detail / Pre-Workout screen.                 |
+| `/workouts/not-real-id`            | Phase 15 Workout Detail not-found state.                      |
+| `/workout/test-id/setup`           | Camera Setup placeholder.                                     |
+| `/workout/test-id/active`          | Active Workout placeholder.                                   |
+| `/workout/test-id/summary`         | Workout Summary placeholder.                                  |
+| `/progress`                        | Progress placeholder; "Progress" tab active.                  |
+| `/profile`                         | Profile placeholder; "Profile" tab active.                    |
+| `/welcome`, `/onboarding`          | Phase 11 onboarding entry and screens 1–3; no bottom tab bar. |
+| `/login`, `/register`              | Auth-layout placeholders; no bottom tab bar.                  |
+| `/paywall`, `/permissions`         | Modal-style placeholders; no bottom tab bar.                  |
+| `/some-unknown-route`              | 404 page with a "Back to Home" link.                          |
 
-`test-id` is an example URL string only — there is no fake workout data behind it.
+`not-real-id` is an example URL string only — there is no fake workout data behind it.
 
 ### Direct URL and browser controls
 
 - Refreshing the browser on any of the routes above should re-render the same route. (`pnpm dev` and `pnpm preview` both serve `index.html` for unknown paths, so SPA fallback works locally. Production deployments will need their own SPA-fallback config when that phase lands.)
 - Browser back / forward should walk through the navigation history correctly.
 - Android Chrome back button (real-device LAN testing) should match desktop behavior.
-- The PWA status pill remains visible on every route and reflects real service-worker status.
+- The bottom tab bar remains visible on main routes and no PWA status pill overlaps page content.
 - Light / dark theme behavior continues to work because `ThemeProvider` still wraps the router in `src/main.tsx`.
 
 ### Bundle splitting
@@ -479,7 +480,7 @@ pnpm build           # Confirms the launch + SW prompt bundle cleanly
 4. After the launch window:
    - At `/` (root) on a fresh profile, the URL is rewritten to `/welcome` because no real onboarding completion exists yet. After onboarding is completed locally, `/` remains Home and the Phase 13 dashboard renders.
    - At a direct deep link (`/welcome`, `/login`, `/onboarding`, `/workouts`, `/workout/test-id/setup`, `/some-unknown-route`, …), the launch screen still shows for ≈ 1.8s and then the same deep link renders. No redirect is applied.
-5. Phase 6 routing, the bottom tab bar on main routes, the PWA status pill, and light / dark theme switching must continue to behave as documented in §16c.
+5. Phase 6 routing, the bottom tab bar on main routes, and light / dark theme switching must continue to behave as documented in §16c.
 
 ### Reduced motion check
 
@@ -542,7 +543,7 @@ Manual checks:
 - Step 3 back should return to step 2 with all goal selections preserved.
 - Step 3 Continue should now navigate to step 4 (Limitations) — see §16i for Phase 12 manual QA. It should never navigate home, fake completion, or request camera permission directly from step 3.
 - Refresh behavior is intentionally local: Phase 11 selections may reset after a full browser refresh because persistence is not implemented yet.
-- Check 5.0-inch and 6.7-inch mobile viewport sizes. Text should not overlap, the primary CTA should remain reachable, and the PWA status pill should remain visible.
+- Check 5.0-inch and 6.7-inch mobile viewport sizes. Text should not overlap, and the primary CTA should remain reachable.
 - Check keyboard navigation: back button, progress-back dots, goal cards, fitness cards, CTA, and sign-in link should all be reachable with visible focus.
 - Check reduced motion in DevTools. Step transitions should become instant or softened.
 - Check light and dark themes. All selected states must be visible without relying on color alone.
@@ -677,6 +678,41 @@ Manual checks (Chrome DevTools → Application → Clear site data first if you 
 
 ---
 
+## 16l. Workout Detail Manual QA (Phase 15)
+
+Phase 15 adds the real `/workouts/:id` pre-workout screen. It uses the canonical static catalog and reads real Phase 12 onboarding limitations from IndexedDB. No new dependencies.
+
+```bash
+pnpm install
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm build
+pnpm dev
+```
+
+Manual checks:
+
+- Complete onboarding if site data is fresh, then open `/workouts`.
+- Tap a free workout card's **View details** action. The app should navigate to `/workouts/:id` and render the real detail page, not a placeholder.
+- Confirm the hero shows the selected workout name, description, access badge, duration, exercise count, difficulty, and equipment from the catalog.
+- Confirm the meta row shows duration, exercise count, difficulty, and equipment. It must not show calories, ratings, popularity, completion counts, history, or form scores.
+- Confirm **What you'll work** renders muscle chips from the detail data / exercise sequence.
+- Confirm **In this session** is an ordered list and the rows match the detail sequence: order, exercise name, sets x reps or time, rest seconds, target muscles, notes, and future-tense coaching preview.
+- Confirm **Coach's note** renders short safety / preparation copy and does not claim live camera or ML is active.
+- Tap **Start workout** on a free workout. The app should navigate to `/workout/:id/setup`, which remains the Phase 16 placeholder.
+- Confirm no browser camera prompt appears and no live camera preview appears.
+- Open `/workouts/not-real-id`. It should show **Workout not found** with a Back to Workout Library CTA.
+- Tap a locked / Pro workout from the library, or open `/workouts/hip-mobility-flow`; the primary action should route to `/paywall` with honest placeholder behavior. It must not implement subscription state.
+- Complete or update onboarding with a limitation such as knees or lower back, then open a conflicting workout such as `/workouts/lower-body-foundations` or `/workouts/quick-core-15`. A gentle limitation warning should appear.
+- Complete or update onboarding with **None** selected, or clear site data and skip onboarding storage, then open the same workout. No personalized limitation warning should appear.
+- Confirm no fake stats, fake workout history, fake ratings, fake calories, fake popularity, fake form scores, fake reps, fake subscriptions, or fake AI feedback appear anywhere on the detail screen.
+- Toggle light and dark mode and confirm the page remains readable.
+- Check 5.0-inch and 6.7-inch mobile viewport sizes. The sticky action area should stay above the bottom navigation, and the bottom tab bar must remain reachable.
+- Confirm the dashboard and Workout Library still work after visiting detail, setup placeholder, not-found, and paywall placeholder routes.
+
+---
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:
@@ -709,7 +745,7 @@ After install:
 1. `pnpm build && pnpm preview`
 2. Open http://localhost:4173/ in Chrome and let it load fully (the service worker precaches all build assets on first load).
 3. Open DevTools → **Network** → set throttling to **Offline**.
-4. Reload the page. The app shell should still render. The status pill at the bottom should read "PWA foundation initialized · offline ready".
+4. Reload the page. The app shell should still render, without a PWA status pill overlapping the route content.
 5. Optionally, in DevTools → **Application** → **Service workers**, check **Offline** and reload — same expectation.
 
 > The app still ships only the honest shell, so there is no further product content to verify offline. Runtime caching rules for `/models/`, `/audio/`, and font requests are pre-wired in `vite.config.ts`; fonts are exercised by Phase 5, while models and audio cues arrive later.
@@ -749,7 +785,7 @@ After install:
 │   ├── theme/                  # ThemeProvider, useTheme, motion constants
 │   ├── router/                 # Route table, guards, layouts (Phase 6)
 │   ├── pages/                  # Honest skeleton route pages (Phase 6)
-│   ├── components/routing/     # RoutePlaceholder, BottomTabBar, status pill
+│   ├── components/routing/     # RoutePlaceholder, BottomTabBar, optional status pill
 │   ├── components/primitives/  # Phase 8 primitive UI library
 │   ├── components/feedback/    # Phase 9 feedback / status / progress library
 │   ├── platform/haptics.ts     # Phase 8 haptics adapter (navigator.vibrate)

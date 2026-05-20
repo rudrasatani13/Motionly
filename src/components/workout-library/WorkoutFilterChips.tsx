@@ -38,7 +38,7 @@ export function WorkoutFilterChips({ value, onChange }: WorkoutFilterChipsProps)
     <div
       role="group"
       aria-label="Filter workouts"
-      className="-mx-1 flex w-full gap-2 overflow-x-auto px-1 pb-1"
+      className="motionly-scrollbar-hidden -mx-1 flex w-full gap-2 overflow-x-auto px-1"
     >
       {CHIPS.map((chip) => (
         <Chip

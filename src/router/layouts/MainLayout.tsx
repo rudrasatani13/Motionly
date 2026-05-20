@@ -1,15 +1,13 @@
 import { Outlet } from 'react-router-dom';
 
 import { BottomTabBar } from '@components/routing/BottomTabBar';
-import { ServiceWorkerStatusPill } from '@components/routing/ServiceWorkerStatusPill';
 
 /**
  * Layout used by main (protected) routes: dashboard, workouts, progress,
  * profile, workout detail / setup / active / summary.
  *
- * Provides the routing-only bottom tab bar and surfaces the PWA status pill
- * as unobtrusive foundation feedback. The real component library and
- * top-level chrome land in later phases.
+ * Provides the routing-only bottom tab bar. The real component library
+ * and top-level chrome land in later phases.
  */
 export function MainLayout(): JSX.Element {
   return (
@@ -19,10 +17,7 @@ export function MainLayout(): JSX.Element {
           <Outlet />
         </main>
 
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 flex flex-col items-center gap-2 px-4 pb-4">
-          <div className="pointer-events-auto">
-            <ServiceWorkerStatusPill />
-          </div>
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 flex flex-col items-center px-4 pb-4">
           <div className="pointer-events-auto w-full max-w-md">
             <BottomTabBar />
           </div>

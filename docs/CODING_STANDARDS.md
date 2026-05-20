@@ -195,6 +195,17 @@ Phase 14 adds the real `/workouts` browsing surface — the Workouts tab, the Ex
 - **No photographic media.** Phase 14 ships abstract token-based artwork (gradients + Lucide icons via the `Icon` wrapper). Do not introduce stock photos, athlete imagery, or body-ideal visuals.
 - **Cards stay honest about safety.** Beginner copy may suggest stopping if something hurts; do not add medical, injury-prevention, or diagnostic claims.
 
+## 6j. Workout Detail & Pre-Workout Screen (Phase 15)
+
+Phase 15 replaces `/workouts/:id` with the real pre-workout detail screen. It is still local-only: static canonical product content plus real onboarding limitation reads.
+
+- **No fake outcome stats.** Workout detail pages must not show completion counts, fake session history, fake streaks, calories, ratings, popularity, form scores, rep counts, or recent activity.
+- **No fake AI feedback.** Exercise sequence previews may show future-tense "Motionly will coach later" cues from the catalog, but must not imply pose detection, live feedback, confidence, scoring, or rep counting is running.
+- **Limitation warnings use real onboarding data only.** Read limitations through `readOnboardingCompletion()` / `useWorkoutDetailData()`. Missing records, storage failures, empty limitation lists, and `none` must not produce personalized warnings.
+- **Keep limitation copy informational.** Use plain movement language: "may involve your knees", "move slowly", "reduce range", "skip uncomfortable movements". Do not diagnose, score, or make medical claims.
+- **Start Workout is only a route handoff.** From a free workout detail page, the CTA may navigate to `/workout/:id/setup`, but it must not call camera APIs, request permission, create a session record, write workout history, start timers, or route to `/workout/:id/active`.
+- **Locked Pro workouts stay structural.** `accessTier: 'pro'` is content metadata only. Route to `/paywall` with honest toast copy; do not read or invent subscription state.
+
 ---
 
 ## 7. Styling

@@ -30,8 +30,8 @@ const TABS: ReadonlyArray<TabConfig> = [
  * Phase 14 — Accessible tab switcher for the Workout Library.
  *
  * Implements the WAI-ARIA tablist pattern with arrow-key navigation
- * between tabs. Selected state is signalled by both a color token
- * and an underline so color is not the only signal.
+ * between tabs. Selected state is signalled by text, color, and the
+ * active button surface.
  */
 export function LibraryTabSwitcher({
   value,
@@ -104,7 +104,7 @@ export function LibraryTabSwitcher({
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-motionly-primary focus-visible:ring-offset-2',
               'focus-visible:ring-offset-motionly-bg-light dark:focus-visible:ring-offset-motionly-bg-dark',
               selected
-                ? 'bg-motionly-primary text-white shadow-sm underline decoration-2 underline-offset-4'
+                ? 'bg-motionly-primary text-white shadow-sm'
                 : 'text-motionly-neutral-700 hover:bg-motionly-neutral-100 dark:text-motionly-neutral-200 dark:hover:bg-motionly-neutral-800',
             )}
           >
