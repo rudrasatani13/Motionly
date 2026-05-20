@@ -172,12 +172,28 @@ Phase 12 completes onboarding with the limitations screen, the camera tutorial /
 Phase 13 turns `/` into the real returning-user dashboard. It is still bounded by the absence of workout, history, stats, and subscription data sources.
 
 - **No fake dashboard metrics.** Do not render fabricated workouts completed, form score, correct reps, streaks, or any other score-like readout.
-- **No fake today's workout.** Until the workout library exists, the dashboard may only explain that recommendations arrive in Phase 14 and link to `/workouts`.
+- **No fake today's workout.** The Phase 14 library exists, but personal recommendations do not. The dashboard may link to `/workouts` and explain that recommendations arrive once workout sessions and history land.
 - **No fake recent activity.** Recent activity must stay empty / unavailable until real workout history exists.
 - **No fake upgrade banner.** Subscription / free-tier state is not live yet, so dashboard monetization UI stays hidden.
 - **Dashboard cards must be honest.** Each card should render one of three states: real data, empty state, or unavailable state. Never use placeholder product data as if it were user data.
 - **Onboarding summary may use real stored completion data only.** Goals, fitness level, limitations, and camera permission can be shown if `readOnboardingCompletion()` returns a real record from IndexedDB.
 - **Refresh is local only.** The dashboard refresh control re-reads local storage; it does not call a network service.
+
+---
+
+## 6i. Workout Library Screen (Phase 14)
+
+Phase 14 adds the real `/workouts` browsing surface — the Workouts tab, the Exercises tab, filters, search, locked-content treatment, and an in-page exercise quick-detail panel. It is read-only: no sessions, no camera, no ML, no Supabase, no payments.
+
+- **Catalog content is canonical product content.** Workouts and exercises declared in `src/data/workout-library.ts` are real Motionly content (like marketing copy). Do not label them "demo", "mock", "sample", or "placeholder", and do not present them in a way that implies fake user activity.
+- **No fake user stats.** The library renders movements and metadata only. Do not add completion counts, ratings, popularity ("used by 10k people"), calories burned, recent activity, form scores, rep counts, AI feedback, or recommendations on library cards.
+- **No live AI claims.** Each exercise lists future coaching cues under "What Motionly will coach later" — phrased as future capability, never as live coaching. Phase 14 does not run pose detection.
+- **No fake subscription state.** `accessTier: 'pro'` is canonical content metadata, not a user-tier flag. Locked content stays visible behind a `LockedContentBadge`; tapping it routes to the existing `/paywall` placeholder with an honest toast. Do not store or read subscription state in Phase 14.
+- **No direct camera or start-workout actions from the library.** Library actions route to `/workouts/:id` (the Phase 15 placeholder) or `/paywall`. Do not navigate to `/workout/:id/setup` or `/workout/:id/active` from the library — those flows belong to later phases.
+- **Use route helpers, not raw URLs.** Library code uses `useNavigation()` (`goToWorkoutDetail`, `goToPaywall`) and `ROUTE_PATHS` / `buildWorkoutDetailPath`. Do not inline `/workouts/...` strings in components.
+- **Library data lives in `src/data/`.** Catalog content goes in `src/data/workout-library.ts`. Filter/search/sort logic lives in `src/utils/workout-library.ts` as pure functions — no React, no DOM, no network.
+- **No photographic media.** Phase 14 ships abstract token-based artwork (gradients + Lucide icons via the `Icon` wrapper). Do not introduce stock photos, athlete imagery, or body-ideal visuals.
+- **Cards stay honest about safety.** Beginner copy may suggest stopping if something hurts; do not add medical, injury-prevention, or diagnostic claims.
 
 ---
 

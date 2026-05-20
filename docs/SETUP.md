@@ -623,6 +623,60 @@ Manual checks (use Chrome DevTools → Application → Storage → Clear site da
 - Confirm the bottom tab bar remains reachable and unobstructed.
 - Confirm no fake users, workouts, stats, streaks, subscriptions, or analytics were added.
 
+## 16k. Workout Library Manual QA (Phase 14)
+
+Phase 14 adds the real `/workouts` browsing surface — Workouts tab, Exercises tab, filters, search, locked-content treatment, and an in-page exercise quick-detail panel. No new dependencies.
+
+```bash
+pnpm install
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm build
+pnpm dev
+```
+
+Manual checks (Chrome DevTools → Application → Clear site data first if you want a fresh profile):
+
+- Complete onboarding so `/` opens the Phase 13 dashboard.
+- Tap the dashboard **Explore workouts** CTA. `/workouts` should now render the real library, NOT the Phase 6 placeholder.
+- Confirm the page has a single `h1` (**Workout Library**) and a "Catalog" badge — no claims that AI coaching is live.
+- Verify the **Workouts** tab is selected by default.
+- Switch to the **Exercises** tab using the tab control, then switch back. Confirm the selected tab is announced (`aria-selected`) and uses both a color and an underline indicator.
+- Use the keyboard: focus the tablist and press **Arrow Right / Arrow Left** to move between tabs. **Home / End** should jump to the first / last tab.
+
+### Workouts tab
+
+- Tap each filter chip in turn: **All**, **Beginner**, **Intermediate**, **Quick ≤15min**, **Strength**, **Mobility**. The list should update visibly in under 200ms.
+- Pick a free workout card and tap **View details**. The app should navigate to `/workouts/:id` (Phase 15 placeholder).
+- Pick a locked (Pro) workout card and tap **View Pro details**. The app should show an honest "Paid plans are implemented in a later phase" toast and navigate to `/paywall`.
+- Confirm locked cards stay visible — they should NEVER be hidden.
+- Confirm no card launches camera setup, the active workout screen, or a fake "Start Workout" CTA.
+
+### Exercises tab
+
+- Type partial terms into the search input (e.g. `squ`, `plank`, `hip`). Results should narrow live with a short debounce; clearing the input restores the full list.
+- Pick a muscle filter chip (Legs, Glutes, Core, etc.) and confirm the grid narrows.
+- Pick a difficulty filter (Beginner / Intermediate / Advanced) and confirm narrowing again.
+- Combine search + muscle + difficulty filters. With a combination that has no matches, the empty state should render with a clear title, description, and a **Clear filters** button. Tapping it should reset both filters and the search query.
+- Tap **View exercise** on a free exercise. The in-page quick-detail panel should slide in showing target muscles, instructions, "What Motionly will coach later" (future capability copy), a camera placement summary, and a disabled "Add to workout" button with an honest "Custom workout builder arrives in a later phase." note.
+- Press **Escape** with the panel open — it should close. The panel close button should also dismiss it.
+- Tap **View Pro details** on a locked exercise. The app should show the same paywall toast and navigate to `/paywall`.
+
+### Honest-content checks
+
+- Confirm no fake completion counts, no ratings, no popularity, no calories, no form scores, no rep counts, no AI-generated results appear anywhere on the library.
+- Confirm no "Start workout" button starts a session.
+- Confirm no card claims AI coaching is live; cues use future-tense language.
+
+### Layout and accessibility
+
+- Resize the viewport to a 5.0-inch (≈ 360×640) and 6.7-inch (≈ 414×896) mobile profile in DevTools and confirm cards stack, the chip rows scroll horizontally when needed, and the bottom tab bar stays reachable and unobstructed.
+- Toggle light and dark mode. Cards, locked badges, and the empty state should remain readable with the Motionly token palette.
+- Confirm the dashboard still works (no regressions) and the bottom tab bar's "Workouts" entry routes to the real library.
+
+---
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:
@@ -746,7 +800,7 @@ Per `MOTIONLY_MASTER_PLAN.md`, the following are still deferred to their own pha
 
 > Phase 11 is complete for onboarding screens 1–3. Phase 12 completed screens 4–5 and local onboarding persistence. Real Supabase session rehydration and real protected redirect rules are still deferred to their own phases.
 
-> Phase 12 is complete: all five onboarding screens render, limitations select correctly with mutually-exclusive "None" behavior, the optional note is capped at 120 characters, the camera permission is requested only after the user taps the CTA, every media track is stopped immediately, and onboarding completion writes `hasOnboarded = true` plus a minimal record to IndexedDB before navigating to Home `/`. Phase 13 now renders the real dashboard, while workouts, live camera preview, ML, Supabase, auth, payments, and analytics remain deferred.
+> Phase 12 is complete: all five onboarding screens render, limitations select correctly with mutually-exclusive "None" behavior, the optional note is capped at 120 characters, the camera permission is requested only after the user taps the CTA, every media track is stopped immediately, and onboarding completion writes `hasOnboarded = true` plus a minimal record to IndexedDB before navigating to Home `/`. Phase 13 renders the real dashboard. Phase 14 ships the real Workout Library at `/workouts` (Workouts tab, Exercises tab, filters, debounced search, locked-content badges, exercise quick-detail panel) backed by a canonical static MVP catalog. Live camera preview, ML, real workout sessions, Supabase, auth, payments, and analytics remain deferred.
 
 ## 22. Phase 2 Success Checklist
 

@@ -14,7 +14,7 @@ export function TodayWorkoutCard({ state, onExploreWorkouts }: TodayWorkoutCardP
       ? 'Workout ready'
       : state.status === 'empty'
         ? 'No workout selected'
-        : 'Coming in Phase 14';
+        : 'Recommendations arrive later';
 
   return (
     <Card
@@ -53,7 +53,8 @@ export function TodayWorkoutCard({ state, onExploreWorkouts }: TodayWorkoutCardP
         ) : (
           <Column gap="sm">
             <Text tone="muted">
-              Workout recommendations arrive with the workout library in Phase 14.
+              Personal recommendations arrive once workout sessions and history are available. The
+              full catalog is browsable now from the Workout Library.
             </Text>
             <Text variant="caption" tone="subtle">
               No workout has been selected yet.

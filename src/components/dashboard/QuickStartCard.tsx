@@ -12,7 +12,7 @@ export function QuickStartCard({ onExploreWorkouts }: QuickStartCardProps): JSX.
       <Column gap="lg">
         <Row align="start" justify="between" gap="md">
           <Column gap="sm">
-            <Badge variant="neutral">Coming after library</Badge>
+            <Badge variant="neutral">Coming after setup</Badge>
             <Heading id="quick-start-heading" level={2}>
               Quick start
             </Heading>
@@ -22,7 +22,10 @@ export function QuickStartCard({ onExploreWorkouts }: QuickStartCardProps): JSX.
           </span>
         </Row>
 
-        <Text tone="muted">Quick start unlocks after the workout library is added.</Text>
+        <Text tone="muted">
+          Quick start unlocks once workout detail and camera setup flows ship. Until then, browse
+          the full catalog from the Workout Library.
+        </Text>
 
         <Button
           variant="secondary"

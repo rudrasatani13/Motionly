@@ -156,3 +156,17 @@ The library is fully local. No network call is required to browse.
 - Do not show fake star ratings or review counts.
 - Do not show a "New!" badge unless content versioning actually exists.
 - Do not auto-select a workout for the user from the library screen — recommendations belong on the dashboard.
+
+---
+
+## Phase 14 implementation note
+
+Phase 14 ships the real `/workouts` screen against this wireframe with a few deliberate, documented divergences from the original spec:
+
+- **Workout / exercise data sources.** The wireframe references a future "seeded library introduced in Phase 30". Phase 14 ships earlier than that, so it defines a **canonical static catalog** in `src/data/workout-library.ts`. Treat this file as real Motionly product content (not as fake/demo/sample data). Phase 30 will replace this static file with a database-backed seed without changing the page's UI contract.
+- **Exercise detail.** The wireframe's "Exercise Detail" requirement lands as an in-page quick-detail panel (`ExerciseQuickDetailPanel`) inside `/workouts`, not as a new route. The Phase 15 `/workouts/:id` route remains a placeholder until Phase 15 builds the full workout detail screen.
+- **Locked content.** Locked Pro cards stay visible (matching the wireframe). Phase 14 does not implement real subscription state, so tapping a locked card surfaces an honest toast and navigates to the existing `/paywall` placeholder.
+- **"Try it now" / "Add to workout".** The master plan listed `"Try it now"` and `"Add to workout"` CTAs on exercise detail. Phase 14 omits "Try it now" entirely (it would imply camera setup / active workout exist) and renders "Add to workout" as a disabled control with an honest note that the custom workout builder lands later. A "View details" / "View exercise" action remains the primary CTA on each card.
+- **Artwork.** The library renders abstract token-based gradients with Lucide icons (via the `Icon` primitive) instead of photographic thumbnails. No body-ideal imagery, no stock photos.
+- **Filter behaviour.** The Workouts chip row is single-select (the wireframe's pattern). "Quick ≤15min" is implemented as a fixed `<=15` minute threshold so the chip behaviour matches the label literally.
+- **Search.** Exercise search is debounced at ~200ms via the `useDebouncedValue` hook. The Workouts tab does not currently expose a search input (the chip row covers the wireframe's narrow set of axes); search can be added later without breaking the filter types.

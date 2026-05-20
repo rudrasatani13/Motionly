@@ -57,34 +57,36 @@ Higher layers compose lower ones. A page may call a service, a service may call 
 
 Each folder also has its own `README.md` with the in-folder rules. The summary below is the canonical map.
 
-| Folder                       | Responsibility                                                                                       | Introduced by                  |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `src/assets/`                | Static assets imported by application code (Vite-bundled).                                           | Phase 5+ as needed             |
-| `src/components/`            | Shared, reusable UI primitives and composite components. Props in, JSX out.                          | Phase 8 — Component primitives |
-| `src/components/primitives/` | Phase 8 reusable UI primitives (`Button`, `Input`, `Card`, …).                                       | Phase 8 — Component primitives |
-| `src/components/feedback/`   | Phase 9 feedback / status / progress components (`CircularProgress`, `Toast`, …).                    | Phase 9 — Feedback components  |
-| `src/components/dashboard/`  | Phase 13 dashboard cards, header, quick-start, stats, and empty states.                              | Phase 13 — Dashboard screen    |
-| `src/components/launch/`     | Phase 10 launch UI — animated `LaunchScreen` + SW update prompt hook.                                | Phase 10 — Splash & launch     |
-| `src/components/onboarding/` | Phase 11–12 onboarding flow components (welcome, goal, fitness level, limitations, camera tutorial). | Phase 11–12 — Onboarding       |
-| `src/components/routing/`    | Phase 6 routing-infrastructure components (`RoutePlaceholder`, …).                                   | Phase 6 — Routing              |
-| `src/launch/`                | Phase 10 launch orchestration — `LaunchGate`, `useLaunchDecision`, auth placeholder.                 | Phase 10 — Splash & launch     |
-| `src/pages/`                 | Route-level screens. One file per top-level URL.                                                     | Phase 10+                      |
-| `src/router/`                | React Router 6 config, guards, route params, navigation helpers, and routing layouts.                | Phase 6 — Routing              |
-| `src/hooks/`                 | Custom React hooks shared across the app.                                                            | As needed                      |
-| `src/store/`                 | Global state (Zustand stores). Phase 11 starts with an in-memory onboarding draft.                   | Phase 11+                      |
-| `src/services/`              | API clients (Supabase), analytics, subscriptions, persistence orchestration.                         | Phase 31+                      |
-| `src/platform/`              | Thin adapters around browser-only APIs. The single chokepoint to the host.                           | Phase 16+ (camera first)       |
-| `src/ml/`                    | On-device ML: pose, joint angles, exercise state machines.                                           | Phase 17+                      |
-| `src/ml/pose/`               | MediaPipe wrapper, landmark normalization, smoothing.                                                | Phase 17 / 18                  |
-| `src/ml/exercises/`          | Per-exercise state machines (rep counting, form cues).                                               | Phase 22+                      |
-| `src/ml/angles/`             | Pure joint-angle math.                                                                               | Phase 20                       |
-| `src/i18n/`                  | i18n configuration and translation catalogs.                                                         | Phase 42 / 43                  |
-| `src/theme/`                 | Theme provider, theme hook, motion constants, and helpers for Tailwind theme mode.                   | Phase 5 / 46                   |
-| `src/utils/`                 | Pure helpers with no React or DOM dependencies.                                                      | As needed                      |
-| `src/types/`                 | Cross-feature TypeScript domain types and ambient declarations.                                      | As needed                      |
-| `src/workers/`               | Web Worker entry points (pose inference, heavy compute).                                             | Phase 19                       |
+| Folder                            | Responsibility                                                                                                                                                        | Introduced by                  |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `src/assets/`                     | Static assets imported by application code (Vite-bundled).                                                                                                            | Phase 5+ as needed             |
+| `src/data/`                       | Canonical static product content (e.g. the Phase 14 workout/exercise catalog). Read-only; never user data.                                                            | Phase 14 — Workout Library     |
+| `src/components/`                 | Shared, reusable UI primitives and composite components. Props in, JSX out.                                                                                           | Phase 8 — Component primitives |
+| `src/components/primitives/`      | Phase 8 reusable UI primitives (`Button`, `Input`, `Card`, …).                                                                                                        | Phase 8 — Component primitives |
+| `src/components/feedback/`        | Phase 9 feedback / status / progress components (`CircularProgress`, `Toast`, …).                                                                                     | Phase 9 — Feedback components  |
+| `src/components/dashboard/`       | Phase 13 dashboard cards, header, quick-start, stats, and empty states.                                                                                               | Phase 13 — Dashboard screen    |
+| `src/components/workout-library/` | Phase 14 workout library composites — header, tab switcher, filter chips, workout/exercise cards, locked-content badge, empty state, and exercise quick-detail panel. | Phase 14 — Workout Library     |
+| `src/components/launch/`          | Phase 10 launch UI — animated `LaunchScreen` + SW update prompt hook.                                                                                                 | Phase 10 — Splash & launch     |
+| `src/components/onboarding/`      | Phase 11–12 onboarding flow components (welcome, goal, fitness level, limitations, camera tutorial).                                                                  | Phase 11–12 — Onboarding       |
+| `src/components/routing/`         | Phase 6 routing-infrastructure components (`RoutePlaceholder`, …).                                                                                                    | Phase 6 — Routing              |
+| `src/launch/`                     | Phase 10 launch orchestration — `LaunchGate`, `useLaunchDecision`, auth placeholder.                                                                                  | Phase 10 — Splash & launch     |
+| `src/pages/`                      | Route-level screens. One file per top-level URL.                                                                                                                      | Phase 10+                      |
+| `src/router/`                     | React Router 6 config, guards, route params, navigation helpers, and routing layouts.                                                                                 | Phase 6 — Routing              |
+| `src/hooks/`                      | Custom React hooks shared across the app.                                                                                                                             | As needed                      |
+| `src/store/`                      | Global state (Zustand stores). Phase 11 starts with an in-memory onboarding draft.                                                                                    | Phase 11+                      |
+| `src/services/`                   | API clients (Supabase), analytics, subscriptions, persistence orchestration.                                                                                          | Phase 31+                      |
+| `src/platform/`                   | Thin adapters around browser-only APIs. The single chokepoint to the host.                                                                                            | Phase 16+ (camera first)       |
+| `src/ml/`                         | On-device ML: pose, joint angles, exercise state machines.                                                                                                            | Phase 17+                      |
+| `src/ml/pose/`                    | MediaPipe wrapper, landmark normalization, smoothing.                                                                                                                 | Phase 17 / 18                  |
+| `src/ml/exercises/`               | Per-exercise state machines (rep counting, form cues).                                                                                                                | Phase 22+                      |
+| `src/ml/angles/`                  | Pure joint-angle math.                                                                                                                                                | Phase 20                       |
+| `src/i18n/`                       | i18n configuration and translation catalogs.                                                                                                                          | Phase 42 / 43                  |
+| `src/theme/`                      | Theme provider, theme hook, motion constants, and helpers for Tailwind theme mode.                                                                                    | Phase 5 / 46                   |
+| `src/utils/`                      | Pure helpers with no React or DOM dependencies.                                                                                                                       | As needed                      |
+| `src/types/`                      | Cross-feature TypeScript domain types and ambient declarations.                                                                                                       | As needed                      |
+| `src/workers/`                    | Web Worker entry points (pose inference, heavy compute).                                                                                                              | Phase 19                       |
 
-> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers, Phase 10 the launch layer, Phase 11 the first in-memory onboarding store plus screens 1–3, Phase 12 onboarding completion storage, and Phase 13 the Home dashboard. Remaining product screens, durable cross-feature persistence, and feature logic still land in their own phases.
+> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers, Phase 10 the launch layer, Phase 11 the first in-memory onboarding store plus screens 1–3, Phase 12 onboarding completion storage, and Phase 13 the Home dashboard. Phase 14 adds the real Workout Library — `src/types/workout-library.ts` (domain types), `src/data/workout-library.ts` (canonical static catalog), `src/utils/workout-library.ts` (pure filter/search/sort helpers), `src/hooks/useDebouncedValue.ts` (generic debounce), and `src/components/workout-library/` (header, tab switcher, filter chips, workout/exercise cards, locked-content badge, empty state, and exercise quick-detail panel). Remaining product screens, durable cross-feature persistence, and feature logic still land in their own phases.
 
 ---
 
@@ -561,13 +563,45 @@ Phase 13 replaces the Home `/` placeholder with an honest dashboard for returnin
 - **`DashboardPage`** composes the header, today's workout area, quick-start CTA, summary cards, activity area, and onboarding summary.
 - **`useDashboardData`** is the only dashboard data hook. It reads local onboarding storage, exposes loading and refresh state, and returns honest empty / unavailable states for workout, stats, recent activity, and subscription sections.
 - **`readOnboardingCompletion()`** lives in `src/platform/onboarding-storage.ts` so product code never touches IndexedDB directly.
-- **Dashboard sections never fabricate data.** If workout library, history, or subscription data do not exist yet, the UI must show an empty or unavailable state and a route CTA instead of placeholder metrics.
+- **Dashboard sections never fabricate data.** Workout history, derived stats, and subscription data still do not exist; the UI must show an empty or unavailable state and a route CTA instead of placeholder metrics. The Phase 14 Workout Library is now real and the dashboard's `Explore workouts` CTA opens it.
 
 ### Deferred to later phases
 
-- **Workout catalog and selection.** The dashboard can link to `/workouts`, but the library itself lands in Phase 14.
+- **Workout catalog and selection.** The dashboard links to `/workouts`, which renders the real Phase 14 Workout Library over the canonical static catalog in `src/data/workout-library.ts`. Workout sessions, camera setup, and active workouts still land in their own later phases.
 - **Workout detail, setup, and active workout flow.** These remain in Phases 15–16 and later.
 - **Workout history, derived stats, subscriptions, analytics.** The dashboard keeps those areas honest until their data sources exist.
+
+---
+
+## 10j. Workout Library Screen (Phase 14)
+
+Phase 14 ships the real Motionly browsing surface at `/workouts`. The library is read-only, local-only, and presentational — no sessions, no camera, no ML, no Supabase, no payments.
+
+### Files
+
+| Path                                       | Responsibility                                                                                                                           |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/types/workout-library.ts`             | Domain types: `WorkoutSummary`, `ExerciseSummary`, filter shapes, `LibraryTab`.                                                          |
+| `src/data/workout-library.ts`              | Canonical static MVP catalog of workouts and exercises (real product content, not user data).                                            |
+| `src/utils/workout-library.ts`             | Pure filter/search/sort helpers — no React, no DOM, no network.                                                                          |
+| `src/hooks/useDebouncedValue.ts`           | Generic debounced-value hook used by the exercise search input.                                                                          |
+| `src/components/workout-library/`          | Phase 14 composites: header, tab switcher, filter chips, workout/exercise cards, locked badge, empty state, exercise quick-detail panel. |
+| `src/pages/workout/WorkoutLibraryPage.tsx` | Route page that wires the catalog through the components.                                                                                |
+
+### Canonical product content vs user data
+
+`src/data/workout-library.ts` is a **canonical static catalog**. It describes the movements Motionly will eventually coach — the same kind of content a marketing site might call "the exercise library." It is NOT:
+
+- Fake/demo/sample data masquerading as real activity.
+- User data (no completions, ratings, popularity, calories, form scores, AI feedback).
+- A database. Phase 30 will introduce a real seed/database layer; until then, this file is the single source of truth and Phase 15 (workout detail) will read by id from it.
+
+### Deferred to later phases
+
+- Workout detail page (`/workouts/:id`) — Phase 15 still renders a placeholder.
+- Camera setup, active workout, summary — Phases 16+.
+- Real subscription state — Phase 36+. Phase 14's locked Pro cards are structural only; tapping them routes to the `/paywall` placeholder with an honest toast.
+- Workout history, completion records, recommendations — later phases tied to ML and persistence.
 
 ---
 
