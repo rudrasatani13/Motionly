@@ -167,6 +167,20 @@ Phase 12 completes onboarding with the limitations screen, the camera tutorial /
 
 ---
 
+## 6h. Home / Dashboard Screen (Phase 13)
+
+Phase 13 turns `/` into the real returning-user dashboard. It is still bounded by the absence of workout, history, stats, and subscription data sources.
+
+- **No fake dashboard metrics.** Do not render fabricated workouts completed, form score, correct reps, streaks, or any other score-like readout.
+- **No fake today's workout.** Until the workout library exists, the dashboard may only explain that recommendations arrive in Phase 14 and link to `/workouts`.
+- **No fake recent activity.** Recent activity must stay empty / unavailable until real workout history exists.
+- **No fake upgrade banner.** Subscription / free-tier state is not live yet, so dashboard monetization UI stays hidden.
+- **Dashboard cards must be honest.** Each card should render one of three states: real data, empty state, or unavailable state. Never use placeholder product data as if it were user data.
+- **Onboarding summary may use real stored completion data only.** Goals, fitness level, limitations, and camera permission can be shown if `readOnboardingCompletion()` returns a real record from IndexedDB.
+- **Refresh is local only.** The dashboard refresh control re-reads local storage; it does not call a network service.
+
+---
+
 ## 7. Styling
 
 - **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.

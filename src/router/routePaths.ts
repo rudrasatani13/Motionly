@@ -7,9 +7,9 @@
  * discoverable.
  *
  * Phase 6 introduces this file. Later phases extend it as new routes land.
- * Real authentication, real screens, and real data are still deferred — these
- * constants describe the URL surface of the routing skeleton, not finished
- * product features.
+ * Real authentication and remaining product data are still deferred — these
+ * constants describe the URL surface before every screen behind them is fully
+ * implemented.
  */
 
 export const ROUTE_PATHS = {

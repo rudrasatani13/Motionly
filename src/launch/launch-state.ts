@@ -5,7 +5,7 @@
  * placeholder, onboarding flag) and the destination it decides. They
  * are intentionally narrow — Phase 10 only needs enough surface to
  * make an honest "first-time vs. returning" decision while real auth
- * and real onboarding writes are still deferred.
+ * is still deferred and onboarding completion is persisted locally.
  */
 
 import type { ROUTE_PATHS } from '@router/routePaths';
@@ -51,5 +51,5 @@ export type LaunchInputs = {
  */
 export type LaunchDecision = {
   destination: (typeof ROUTE_PATHS)['welcome'] | (typeof ROUTE_PATHS)['home'];
-  reason: 'first-time-user' | 'auth-not-implemented' | 'returning-authenticated-user';
+  reason: 'first-time-user' | 'returning-onboarded-user';
 };

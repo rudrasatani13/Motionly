@@ -24,7 +24,8 @@ import { useLaunchDecision } from './useLaunchDecision';
  * already in its canonical shape. Direct deep links (auth routes,
  * Phase 6 workout placeholders, 404 testing) are preserved — only
  * the bare `/` entry is collapsed to the launch destination
- * (currently `/welcome` while real auth + onboarding are deferred).
+ * (`/welcome` for first-time users, `/` for returning users with the
+ * real persisted onboarding flag).
  *
  * The gate intentionally sits **outside** the router. It does not
  * read or write fake auth state, does not invent fake onboarding

@@ -1,7 +1,8 @@
 /**
  * Phase 10 → Phase 12 — Onboarding storage platform adapter.
  *
- * Single chokepoint for the `hasOnboarded` flag. Following the
+ * Single chokepoint for the `hasOnboarded` flag and the minimal
+ * onboarding completion payload. Following the
  * platform-adapter rule (`docs/ARCHITECTURE.md` §6), any browser
  * storage access for the launch decision lives here instead of
  * leaking into product code.
@@ -144,6 +145,53 @@ function readBooleanFromStore(db: IDBDatabase, key: string): Promise<boolean> {
   });
 }
 
+function readUnknownFromStore(db: IDBDatabase, key: string): Promise<unknown | null> {
+  return new Promise((resolve) => {
+    let tx: IDBTransaction;
+    try {
+      tx = db.transaction(ONBOARDING_STORE_NAME, 'readonly');
+    } catch {
+      resolve(null);
+      return;
+    }
+
+    let getRequest: IDBRequest<unknown>;
+    try {
+      const store = tx.objectStore(ONBOARDING_STORE_NAME);
+      getRequest = store.get(key);
+    } catch {
+      resolve(null);
+      return;
+    }
+
+    getRequest.onerror = () => resolve(null);
+    getRequest.onsuccess = () => {
+      resolve(getRequest.result ?? null);
+    };
+    tx.onerror = () => resolve(null);
+    tx.onabort = () => resolve(null);
+  });
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+function isOnboardingCompletionRecord(value: unknown): value is OnboardingCompletionRecord {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.completedAt === 'string' &&
+    isStringArray(record.goals) &&
+    (typeof record.fitnessLevel === 'string' || record.fitnessLevel === null) &&
+    isStringArray(record.limitations) &&
+    typeof record.limitationNotes === 'string' &&
+    typeof record.cameraPermissionGranted === 'boolean'
+  );
+}
+
 function writeCompletionToStore(
   db: IDBDatabase,
   completion: OnboardingCompletionRecord,
@@ -188,6 +236,28 @@ export async function readHasOnboarded(): Promise<boolean> {
     }
   } catch {
     return false;
+  }
+}
+
+/**
+ * Read the real Phase 12 onboarding completion payload, if one exists.
+ * Never creates storage, writes defaults, or throws to callers. Missing,
+ * unavailable, errored, or malformed data all collapse to `null`.
+ */
+export async function readOnboardingCompletion(): Promise<OnboardingCompletionRecord | null> {
+  try {
+    const db = await openExistingDatabase();
+    if (db === null) {
+      return null;
+    }
+    try {
+      const value = await readUnknownFromStore(db, ONBOARDING_COMPLETION_KEY);
+      return isOnboardingCompletionRecord(value) ? value : null;
+    } finally {
+      db.close();
+    }
+  } catch {
+    return null;
   }
 }
 

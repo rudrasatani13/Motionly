@@ -30,18 +30,13 @@ export type LaunchDecisionState =
 
 function pickDestination(inputs: LaunchInputs): LaunchDecision {
   // Phase 10 honesty rules:
-  // - Real auth is deferred → `inputs.auth.status === 'not-implemented'`
-  //   collapses to "send the user to `/welcome` so the eventual
-  //   sign-in / onboarding entry stays the first product surface they
-  //   see."
-  // - `hasOnboarded` reads return `false` until Phase 12 starts writing
-  //   the flag, so the same `/welcome` destination applies to first
-  //   launches today.
-  if (inputs.auth.status === 'authenticated' && inputs.hasOnboarded) {
-    return { destination: ROUTE_PATHS.home, reason: 'returning-authenticated-user' };
-  }
-  if (inputs.auth.status === 'not-implemented') {
-    return { destination: ROUTE_PATHS.welcome, reason: 'auth-not-implemented' };
+  // - Real auth is deferred, but a real onboarding completion flag now
+  //   exists. Returning users should land on Home `/` regardless of the
+  //   auth placeholder status.
+  // - Fresh launches still go to `/welcome` because the persisted flag
+  //   is absent.
+  if (inputs.hasOnboarded) {
+    return { destination: ROUTE_PATHS.home, reason: 'returning-onboarded-user' };
   }
   return { destination: ROUTE_PATHS.welcome, reason: 'first-time-user' };
 }

@@ -137,3 +137,15 @@ All of the following come from future systems and must not be faked in earlier p
 - Do not display fake "Calories burned" or "Active minutes" stats — they are out of scope for the MVP and the privacy posture.
 - Do not show motivational nudges ("3 more sessions to unlock a badge!") unless the badge system actually exists and the count is real.
 - Do not display a fake "AI tip of the day" — the model has no opinion outside an active session.
+
+## Phase 13 implementation note
+
+The shipped Phase 13 dashboard intentionally differs from the illustrative wireframe because the workout library, workout history, subscriptions, and analytics are still missing.
+
+- No fake user name is rendered in the header; the greeting is time-based only.
+- The Today&apos;s Workout card is an honest empty state with a CTA to `/workouts`.
+- Quick start is a deferred card that points to `/workouts` instead of launching a fake workout.
+- Progress summary cards render unavailable copy instead of invented metrics.
+- Recent activity is empty until real workout history exists.
+- The upgrade banner stays hidden until a real subscription state exists.
+- A small onboarding summary card can appear when the real Phase 12 completion record exists in IndexedDB.

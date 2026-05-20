@@ -385,7 +385,7 @@ After `pnpm install`, validate the routing skeleton in both `pnpm dev` and `pnpm
 
 | URL                        | Expectation                                                   |
 | -------------------------- | ------------------------------------------------------------- |
-| `/`                        | Dashboard placeholder with bottom tab bar; "Home" active.     |
+| `/`                        | Phase 13 dashboard with bottom tab bar; "Home" active.        |
 | `/workouts`                | Workout Library placeholder; "Workouts" active.               |
 | `/workouts/test-id`        | Workout Detail placeholder; shows route param `test-id`.      |
 | `/workout/test-id/setup`   | Camera Setup placeholder.                                     |
@@ -477,7 +477,7 @@ pnpm build           # Confirms the launch + SW prompt bundle cleanly
 2. On the first paint, the inline pre-React HTML splash should appear on a dark `#0A0A0F` canvas with the **Motionly** wordmark and **Move Better.** tagline. This must paint without a white flash on any system theme (light or dark).
 3. As soon as React hydrates, the React `<LaunchScreen>` takes over on the same dark canvas. The wordmark scales `0.9 → 1.0` with a fade-in; the tagline fades in ~200ms after. Total visible launch ≈ 1.8s.
 4. After the launch window:
-   - At `/` (root), the URL is rewritten to `/welcome` because real auth + completed onboarding are deferred. The Phase 11 welcome entry screen renders.
+   - At `/` (root) on a fresh profile, the URL is rewritten to `/welcome` because no real onboarding completion exists yet. After onboarding is completed locally, `/` remains Home and the Phase 13 dashboard renders.
    - At a direct deep link (`/welcome`, `/login`, `/onboarding`, `/workouts`, `/workout/test-id/setup`, `/some-unknown-route`, …), the launch screen still shows for ≈ 1.8s and then the same deep link renders. No redirect is applied.
 5. Phase 6 routing, the bottom tab bar on main routes, the PWA status pill, and light / dark theme switching must continue to behave as documented in §16c.
 
@@ -582,13 +582,46 @@ Manual checks (use Chrome DevTools → Application → Storage → Clear site da
   - **Granted path:** Accept the prompt. The status message switches to a success tone, IndexedDB receives `hasOnboarded = true` plus a completion record, and the app navigates to Home `/`. Inspect DevTools → Application → IndexedDB → `motionly` → `onboarding` to confirm `hasOnboarded === true` and a `completion` record exists. Confirm the camera indicator (browser tab / system) turns off immediately — Phase 12 stops every track.
   - **Denied path:** Reload, restart the flow, deny the prompt. A warning status appears with retry guidance. The CTA relabels to "Try again". "Continue without camera for now" appears as a secondary action; tapping it writes the completion record (with `cameraPermissionGranted: false`) and navigates Home without claiming the camera was granted.
   - **Unavailable / error path (if practical):** In Chrome DevTools, disable the camera device or load over a non-secure host (e.g. an IP without HTTPS) — the warning explains the situation and "Continue without camera for now" is offered.
-- **Persistence check:** After completing onboarding, reload `/`. The launch gate should now route to Home `/` (the Phase 6 placeholder), NOT `/welcome`.
+- **Persistence check:** After completing onboarding, reload `/`. The launch gate should now route to Home `/` (the Phase 13 dashboard), NOT `/welcome`.
 - **Reset check:** Clear site data again. Reload `/`. The launch gate should once again route to `/welcome`.
 - **Android Chrome on a real phone (LAN URL printed by `pnpm dev`):** confirm the permission prompt copy is understandable, denial guidance is reasonable, and the "Continue without camera for now" path completes without fake "camera ready" messaging.
 - **HTTPS / localhost secure context:** Camera permission only works on `https://` or `http://localhost`. On a plain `http://<ip>` URL the adapter resolves `unavailable` with the insecure-context explainer — verify this rather than treating it as a bug.
 - Check reduced motion in DevTools. The camera tutorial card entrance animations should become instant.
 - Check light and dark themes. All selected states, status banners, and CTAs must be visible without relying on color alone.
 - Confirm no fake users, fake sessions, fake workouts, fake stats, fake AI feedback, no live camera preview, and no skeleton overlay were added.
+
+## 16j. Home / Dashboard Manual QA (Phase 13)
+
+Phase 13 adds the real Home / Dashboard screen, local onboarding completion reads, and honest empty states.
+
+```bash
+pnpm install
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm build
+pnpm dev
+```
+
+Manual checks (use Chrome DevTools → Application → Storage → Clear site data before starting):
+
+- Open `/`. After the Phase 10 splash, the app should land on `/welcome` on a fresh profile.
+- Complete onboarding.
+- Verify the app returns to `/` and renders the Phase 13 dashboard.
+- Confirm the header greeting uses local time and does not show a fake user name.
+- Confirm the date renders in the browser locale.
+- Confirm the Today&apos;s Workout card does not show a fake workout name, duration, or exercise count.
+- Confirm the Explore workouts CTA routes to `/workouts`.
+- Confirm the quick-start card does not create a fake workout ID or navigate to setup / active workout routes.
+- Confirm the progress summary shows honest unavailable copy rather than fake metrics.
+- Confirm recent activity stays empty / unavailable rather than showing fake cards.
+- Confirm no upgrade banner appears unless backed by real subscription state, which does not exist yet.
+- Confirm the onboarding summary card reflects the real IndexedDB completion record: goals, fitness level, limitations, and camera permission.
+- Confirm the refresh control re-reads the local dashboard data.
+- Check 5.0-inch and 6.7-inch mobile viewport sizes.
+- Check light and dark themes.
+- Confirm the bottom tab bar remains reachable and unobstructed.
+- Confirm no fake users, workouts, stats, streaks, subscriptions, or analytics were added.
 
 ## 17. Testing PWA Installability (Android Chrome)
 
@@ -697,24 +730,23 @@ After install:
 
 > **Phase 11 update:** Phase 4 created the aliased folder skeleton. `src/theme/` contains real theme infrastructure, `src/hooks/useTheme.ts` re-exports the theme hook, `src/store/useOnboardingStore.ts` holds the in-memory onboarding draft, and `src/types/onboarding.ts` holds the Phase 11 onboarding types. The remaining folders stay reserved until their phases arrive. See [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) for the full map.
 
-## 21. What the Current Foundation Intentionally Does NOT Include
+## 21. What the Current Foundation Intentionally Still Does NOT Include
 
-Per `MOTIONLY_MASTER_PLAN.md`, the following are deferred to their own phases. Do **not** add any of these until their phase is active:
+Per `MOTIONLY_MASTER_PLAN.md`, the following are still deferred to their own phases. Do **not** add any of these until their phase is active:
 
-- Onboarding screens 4–5, onboarding completion, and persistent onboarding writes (Phase 12 / Phase 30)
-- Dashboard, workout library, workout detail (Phases 13–15)
-- Camera permissions, MediaPipe, pose detection, exercise engines (Phases 16–24)
+- Workout library, workout detail, workout history, and programmed plans (Phases 14–15, 28, 33)
+- Live camera setup / preview, MediaPipe, pose detection, exercise engines (Phases 16–24)
 - Voice feedback, skeleton overlay (Phases 25–26)
-- Durable cross-feature state management and IndexedDB writes (Phases 29–30)
+- Durable cross-feature state management and the full IndexedDB storage adapter (Phases 29–30)
 - Supabase backend, authentication (Phases 31–32)
 - Stripe / Razorpay, paywall, free-tier limits (Phases 36–38)
 - i18n, Hindi pack (Phases 42–43)
 - Web Push, notifications (Phase 44)
 - Settings UI and accessibility audit (Phases 45–47)
 
-> Phase 11 is complete for onboarding screens 1–3 only. The `/welcome` entry screen and the first three internal `/onboarding` steps are live with in-memory selections, but screens 4–5, real `hasOnboarded` writes, real Supabase session rehydration, and real protected redirect rules are still deferred to their own phases.
+> Phase 11 is complete for onboarding screens 1–3. Phase 12 completed screens 4–5 and local onboarding persistence. Real Supabase session rehydration and real protected redirect rules are still deferred to their own phases.
 
-> Phase 12 is complete: all five onboarding screens render, limitations select correctly with mutually-exclusive "None" behavior, the optional note is capped at 120 characters, the camera permission is requested only after the user taps the CTA, every media track is stopped immediately, and onboarding completion writes `hasOnboarded = true` plus a minimal record to IndexedDB before navigating to Home `/`. Real dashboard, workouts, live camera preview, ML, Supabase, auth, payments, and analytics remain deferred.
+> Phase 12 is complete: all five onboarding screens render, limitations select correctly with mutually-exclusive "None" behavior, the optional note is capped at 120 characters, the camera permission is requested only after the user taps the CTA, every media track is stopped immediately, and onboarding completion writes `hasOnboarded = true` plus a minimal record to IndexedDB before navigating to Home `/`. Phase 13 now renders the real dashboard, while workouts, live camera preview, ML, Supabase, auth, payments, and analytics remain deferred.
 
 ## 22. Phase 2 Success Checklist
 

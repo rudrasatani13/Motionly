@@ -63,6 +63,7 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/components/`            | Shared, reusable UI primitives and composite components. Props in, JSX out.                          | Phase 8 — Component primitives |
 | `src/components/primitives/` | Phase 8 reusable UI primitives (`Button`, `Input`, `Card`, …).                                       | Phase 8 — Component primitives |
 | `src/components/feedback/`   | Phase 9 feedback / status / progress components (`CircularProgress`, `Toast`, …).                    | Phase 9 — Feedback components  |
+| `src/components/dashboard/`  | Phase 13 dashboard cards, header, quick-start, stats, and empty states.                              | Phase 13 — Dashboard screen    |
 | `src/components/launch/`     | Phase 10 launch UI — animated `LaunchScreen` + SW update prompt hook.                                | Phase 10 — Splash & launch     |
 | `src/components/onboarding/` | Phase 11–12 onboarding flow components (welcome, goal, fitness level, limitations, camera tutorial). | Phase 11–12 — Onboarding       |
 | `src/components/routing/`    | Phase 6 routing-infrastructure components (`RoutePlaceholder`, …).                                   | Phase 6 — Routing              |
@@ -83,7 +84,7 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/types/`                 | Cross-feature TypeScript domain types and ambient declarations.                                      | As needed                      |
 | `src/workers/`               | Web Worker entry points (pose inference, heavy compute).                                             | Phase 19                       |
 
-> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers, Phase 10 the launch layer, and Phase 11 the first in-memory onboarding store plus screens 1–3. Remaining product screens, durable persistence, and feature logic still land in their own phases.
+> Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers, Phase 10 the launch layer, Phase 11 the first in-memory onboarding store plus screens 1–3, Phase 12 onboarding completion storage, and Phase 13 the Home dashboard. Remaining product screens, durable cross-feature persistence, and feature logic still land in their own phases.
 
 ---
 
@@ -469,15 +470,15 @@ Phase 10 wires Motionly's launch experience: a pre-React HTML splash in `index.h
 
 ### Rules
 
-- **No fake auth / onboarding state.** Neither the gate, the hook, nor the platform reader may seed fake flags, fake users, or fake sessions. `false` and `not-implemented` are the truthful answers today.
+- **No fake auth / onboarding state.** Neither the gate, the hook, nor the platform reader may seed fake flags, fake users, or fake sessions. `readHasOnboarded()` returns only the real persisted flag or `false`; auth remains `not-implemented` until Phase 32.
 - **No fake loading copy.** Neither splash invents "Analyzing movement…", "Loading AI…", or any other status claim. The brand reveal is the wordmark plus the tagline. Full stop.
 - **Launch decisions use route constants.** `useLaunchDecision` and `<LaunchGate>` import `ROUTE_PATHS` — no inline `'/welcome'` / `'/'` strings.
 - **Storage stays behind the adapter.** The only filesystem / IndexedDB access in the launch flow is `@platform/onboarding-storage`. `<LaunchGate>` uses `window.history.replaceState` once as the documented browser-API touch point for the launch layer; camera / TTS / storage / haptics / notifications still go through `src/platform/`.
-- **No fake first-rep auto-routing.** The launch gate must not silently bypass the welcome / onboarding entry by jumping straight to a workout. It picks `/welcome` until the future onboarding/auth phase honestly says otherwise.
+- **No fake first-rep auto-routing.** The launch gate must not silently bypass the welcome / onboarding entry by jumping straight to a workout. It picks Home `/` only when the real local onboarding flag exists.
 
 ### Deferred to later phases
 
-- **Writing `hasOnboarded`.** Phase 12 added the write path (`completeOnboardingStorage`). Phase 30 (storage adapter) introduces the durable IndexedDB schema that will eventually replace the Phase 12 minimal store.
+- **Durable cross-feature storage.** Phase 12 added the minimal onboarding write path (`completeOnboardingStorage`). Phase 30 (storage adapter) introduces the durable IndexedDB schema that will eventually replace this narrow store.
 - **Real session rehydration.** Phase 32 (backend / auth) swaps the `getLaunchAuthState` placeholder for a real Supabase session read.
 - **Real protected redirect rules.** `<RequireAuth>` remains structural-only until Phase 32; the launch gate does not pre-implement production-grade redirect logic.
 
@@ -505,7 +506,7 @@ Phase 11 turns the `/welcome` and `/onboarding` placeholders into the first half
 
 ### Deferred to later phases
 
-- **Camera live preview, silhouette detection, ML, auth, Supabase, dashboard, workouts, payments, analytics.** Phase 11 / Phase 12 do not pre-implement or fake any of these systems.
+- **Camera live preview, silhouette detection, ML, auth, Supabase, workouts, payments, analytics.** Phase 11 / Phase 12 do not pre-implement or fake any of these systems.
 
 ---
 
@@ -536,8 +537,37 @@ Phase 12 completes the onboarding flow added in Phase 11. The route surface (`/o
 
 - **Supabase sync.** Backend / auth is not connected; Phase 12 intentionally skips Supabase. A short note lives in `onboarding-storage.ts`.
 - **Live camera preview, silhouette detection, ML, skeleton overlay, rep counting, form scoring.** Phase 12 only primes the permission; the real camera setup lives in Phase 16.
-- **Real dashboard, workouts, streaks, stats, subscriptions, analytics.** Home `/` remains the Phase 6 placeholder after completion.
+- **Workout library, workout detail, workout history, streaks, stats, subscriptions, analytics.** Home `/` now renders the Phase 13 dashboard; those data sources remain deferred.
 - **IndexedDB schema rewrite.** Phase 30 owns the real storage adapter; the Phase 12 store is the minimum viable persistence to unlock the launch gate.
+
+---
+
+## 10i. Home / Dashboard Screen (Phase 13)
+
+Phase 13 replaces the Home `/` placeholder with an honest dashboard for returning users. It reads the real local onboarding completion record when present, but it does **not** invent workouts, history, stats, or subscription state.
+
+### Module map
+
+| File / folder                        | Responsibility                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------- |
+| `src/pages/main/DashboardPage.tsx`   | Route composition for the Phase 13 dashboard.                                 |
+| `src/components/dashboard/`          | Presentational dashboard cards, header, quick start, stats, and empty states. |
+| `src/hooks/useDashboardData.ts`      | Reads onboarding completion and builds honest dashboard state.                |
+| `src/platform/onboarding-storage.ts` | IndexedDB adapter used to read the real Phase 12 completion record.           |
+| `src/types/dashboard.ts`             | Dashboard state types for available / empty / unavailable sections.           |
+
+### Responsibilities
+
+- **`DashboardPage`** composes the header, today's workout area, quick-start CTA, summary cards, activity area, and onboarding summary.
+- **`useDashboardData`** is the only dashboard data hook. It reads local onboarding storage, exposes loading and refresh state, and returns honest empty / unavailable states for workout, stats, recent activity, and subscription sections.
+- **`readOnboardingCompletion()`** lives in `src/platform/onboarding-storage.ts` so product code never touches IndexedDB directly.
+- **Dashboard sections never fabricate data.** If workout library, history, or subscription data do not exist yet, the UI must show an empty or unavailable state and a route CTA instead of placeholder metrics.
+
+### Deferred to later phases
+
+- **Workout catalog and selection.** The dashboard can link to `/workouts`, but the library itself lands in Phase 14.
+- **Workout detail, setup, and active workout flow.** These remain in Phases 15–16 and later.
+- **Workout history, derived stats, subscriptions, analytics.** The dashboard keeps those areas honest until their data sources exist.
 
 ---
 
