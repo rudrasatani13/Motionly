@@ -835,6 +835,34 @@ Phase 19 layers a pure-TypeScript joint-angle calculation pipeline on top of the
 
 ---
 
+## 16q. Squat Rep Detection Manual QA (Phase 20)
+
+Phase 20 layers a bodyweight squat state machine on top of the Phase 19 angle snapshots. The active route remains debug-only — Phase 20 adds the **Squat rep debug** panel. No new runtime dependencies were added.
+
+- Run `pnpm install` and confirm no new packages were added since Phase 19.
+- Run `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, and `pnpm build` and confirm they all pass.
+- Run `pnpm preview`, complete onboarding if needed, and open a workout that includes the bodyweight squat (e.g. **Lower Body Foundations** or **Full Body Flow**). **Start workout**, complete camera setup, and **Continue to workout**. The active route should render the Phase 17 + 18 + 19 surfaces and the new Phase 20 **Squat rep debug** panel.
+- For a workout that does not include a squat (e.g. **Mobility Reset**), confirm the panel shows the honest "Squat detector is available for workouts that include the bodyweight squat" note and the rep counter is not active.
+- Tap **Start pose debug**, grant the browser camera prompt, and confirm the existing Phase 17 / 18 / 19 surfaces still behave as in §16n / §16o / §16p.
+- Stand upright fully in frame and confirm the squat engine initializes as `Standing` with rep count `0`. The engine status should read `running` (not `initializing`) once both knees clear the standing threshold.
+- Start from a crouched / bottom position and confirm no rep counts until you first reach standing — the engine status reads `initializing` until then.
+- Perform 10 full squats at a steady pace, 3 separate runs (tap **Reset squat detector** between runs). Each run should reach a rep count of 10 with no missed reps.
+- Perform half squats that do not pass the bottom-depth threshold and confirm the **Last rejected rep** card shows `Half rep — bottom threshold not reached` and the rep count is unchanged.
+- Perform slow reps (~4 s/rep) and confirm they count.
+- Perform medium reps (~2 s/rep) and confirm they count.
+- Perform fast reps (~1 s/rep) and confirm they count only when the bottom dwell still clears 15 frames; otherwise the rep is rejected with `Bottom dwell shorter than 15 frames`.
+- Step out of frame mid-rep and confirm the in-flight rep is discarded (`Visibility lost mid-rep`), no fake rep is banked, and the **State** card returns to `Standing` / `Waiting for pose`.
+- Cover one or both knees mid-rep and confirm the engine refuses to fabricate angle continuation — the in-flight rep is discarded (`Knee angles unavailable mid-rep`) and no rep is counted.
+- Toggle between **Beginner (< 110°)** and **Intermediate (< 90°)** chips and confirm the bottom threshold changes accordingly. Switching difficulty cancels any in-flight rep so a threshold change can't half-count an attempt framed under the previous setting.
+- Tap **Reset squat detector** and confirm rep count, state, latest counted rep, and latest rejected rep clear.
+- Tap **Stop pose debug** and confirm: inference stops, the camera indicator turns off, the squat detector resets cleanly, and no stale rep / state remains on the next start.
+- Navigate **Back to setup** and **Back to workout detail** during an active session and confirm the camera indicator turns off and the squat detector resets cleanly.
+- Confirm the page contains **no form score, no coaching cue, no voice cue, no workout timer, no completion summary, no workout history write, no calories, no streak update, no "Great form!" / "Bad form" labels, no fake reps, no fake angles, and no `NaN` / `Infinity` values anywhere in the squat UI**. Form score copy must be the explicit "Form score: deferred to Phase 21" reminder on the rep cards.
+- Check light and dark mode for the new **Squat rep debug** card.
+- Check 5.0-inch and 6.7-inch mobile viewport sizes. The Phase 20 cards should stack cleanly on small viewports and stay reachable above the bottom nav.
+
+---
+
 ## 17. Testing PWA Installability (Android Chrome)
 
 PWA installability requires:

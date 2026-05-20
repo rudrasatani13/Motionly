@@ -279,6 +279,57 @@ Phase 19 adds a pure-TypeScript joint-angle layer on top of the Phase 18 process
 
 ---
 
+## 6o. Squat Exercise State Machine & Rep Detection (Phase 20)
+
+Phase 20 introduces the first exercise engine. It is debug-only — no
+form scoring, no coaching cues, no workout sessions, no persistence.
+
+- **No fake reps.** A rep is counted only when the state machine
+  observes the full `STANDING → DESCENDING → BOTTOM → ASCENDING →
+STANDING` cycle with the configured bottom-depth threshold reached
+  and the bottom-dwell threshold cleared. Do not increment the rep
+  count from any other path.
+- **No rep count without a valid state transition.** Half-reps,
+  visibility losses, and angle unavailability emit typed rejections
+  (`half_rep_depth_not_reached`, `bottom_dwell_too_short`,
+  `angles_unavailable`, `visibility_lost`, `duration_too_short`,
+  `duration_too_long`, `not_initialized_from_standing`). Rejections
+  must never increment the counter.
+- **Half-reps must be rejected.** Bouncing out of DESCENDING without
+  touching the depth threshold emits `rejected_half_rep` — never a
+  count, never a fractional rep.
+- **No form score in Phase 20.** `formScore` on every emitted
+  `SquatRepResult` is `null`. Do not compute, infer, or display a
+  numeric form score until Phase 21 ships the real form-rule layer.
+- **No coaching cues in Phase 20.** No `FormCueCard`, no "Push your
+  knees out", no "Go deeper", no "Keep chest up", no priority
+  selection. Raw rep metrics (max knee valgus ratio, average trunk
+  angle, bottom knee angle, duration) may be collected on the rep
+  result for Phase 21 to consume, but they must not be judged.
+- **Engine state must reset on no-pose / stop / unmount / workout
+  change.** `SquatEngine.reset()` is called from the hook on disable,
+  on unmount, when the consumer taps Reset, and (via the active page)
+  when pose debug stops. Stale BOTTOM state must never bank a fake
+  dwell across a no-pose gap.
+- **No rep persistence.** No `localStorage`, no IndexedDB, no
+  Supabase, no analytics, no file writes for squat state or rep
+  results. The engine and hook live in memory only.
+- **Engines consume `AngleSnapshot`, not camera / video / MediaPipe.**
+  `src/ml/exercises/` modules must not import `@mediapipe/*`, the
+  camera adapter, or the DOM. They consume snapshots produced by
+  `src/ml/angles/` only.
+- **No per-frame side effects.** No `console.*` per frame, no per-frame
+  toasts, no per-frame DOM writes outside React render, no per-frame
+  network calls. Engine math is sub-millisecond and silent.
+- **One engine per session.** The hook owns a single `SquatEngine`
+  instance per active session and dedups by `frameId`. Do not create
+  a new engine per frame — that destroys the state machine.
+- **No fake "workout complete".** Phase 20 never marks the workout
+  complete, never updates dashboard stats, never writes to history,
+  never modifies streaks, and never navigates to a summary screen.
+
+---
+
 ## 7. Styling
 
 - **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.

@@ -81,7 +81,7 @@ Each folder also has its own `README.md` with the in-folder rules. The summary b
 | `src/platform/`                   | Thin adapters around browser-only APIs. The single chokepoint to the host.                                                                                                                                                                                                                          | Phase 16+ (camera first)       |
 | `src/ml/`                         | On-device ML: pose, joint angles, exercise state machines.                                                                                                                                                                                                                                          | Phase 17+                      |
 | `src/ml/pose/`                    | MediaPipe wrapper, landmark constants, and the Phase 18 processing layer — `LandmarkSmoother`, `ConfidenceFilter`, `LandmarkNormalizer`, `PoseFrameProcessor` / `processPoseFrame`, `pose-processing-config`.                                                                                       | Phase 17 / 18                  |
-| `src/ml/exercises/`               | Per-exercise state machines (rep counting, form cues).                                                                                                                                                                                                                                              | Phase 22+                      |
+| `src/ml/exercises/`               | Per-exercise state machines (Phase 20 squat rep counting; later phases add form cues and other exercises). Pure TypeScript engines that consume Phase 19 `AngleSnapshot`s — never raw MediaPipe / camera / DOM.                                                                                     | Phase 20 (squat)               |
 | `src/ml/angles/`                  | Pure joint-angle math layer — `AngleCalculator`, `JointAngles`, `AngleHistory`, `AngleFrameProcessor` / `processAngleSnapshot`, and `angle-config`. Consumes the Phase 18 processed pose frame and produces a single `AngleSnapshot` per frame plus a bounded 30-frame ring buffer. No persistence. | Phase 19                       |
 | `src/i18n/`                       | i18n configuration and translation catalogs.                                                                                                                                                                                                                                                        | Phase 42 / 43                  |
 | `src/theme/`                      | Theme provider, theme hook, motion constants, and helpers for Tailwind theme mode.                                                                                                                                                                                                                  | Phase 5 / 46                   |
@@ -823,6 +823,76 @@ shows "Waiting for pose" instead of a stale snapshot.
 - Phase 22+ — every other exercise + form rule set.
 - Phase 25 voice feedback. Phase 26 final skeleton overlay.
 - Workout session records, timers, history, summary screens, calories, Supabase/auth, payments, subscriptions, and analytics.
+
+---
+
+## 10p. Squat Exercise State Machine & Rep Detection (Phase 20)
+
+Phase 20 adds the first exercise engine on top of the Phase 19 angle
+layer. The active route stays debug-only — Phase 20 adds the squat
+state machine and a debug rep counter; form scoring, coaching cues,
+workout timers, and session/history persistence all remain deferred.
+
+### Files
+
+| Path                                            | Responsibility                                                                                                                                                                                                                                                 |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/types/exercise.ts`                         | Generic exercise-engine domain types — `ExerciseEngineId`, `ExerciseEngineStatus`, `ExerciseFrameInput`, `ExerciseFrameResult`, `ExerciseRepStatus`, `ExerciseRepRejectionReason`, `ExerciseRepResultBase`, `ExerciseEngineDebugState`, `ExerciseEngineStats`. |
+| `src/types/squat.ts`                            | Squat-specific domain types — `SquatState`, `SquatDifficulty`, `SquatDepthStatus`, `SquatRepQuality`, `SquatEngineConfig`, `SquatRepResult`, `SquatFrameResult`, `SquatEngineDebugState`, `SquatStateTransition`.                                              |
+| `src/ml/exercises/SquatEngine.ts`               | `STANDING → DESCENDING → BOTTOM → ASCENDING → STANDING` state machine over Phase 19 `AngleSnapshot`s. Counts only full reps with ≥ 15-frame bottom dwell; rejects half-reps with typed reasons.                                                                |
+| `src/ml/exercises/squat-config.ts`              | Centralized thresholds (standing 160°, beginner bottom < 110°, intermediate bottom < 90°, 15-frame minimum bottom dwell, rep-duration bounds).                                                                                                                 |
+| `src/ml/exercises/squat-utils.ts`               | Pure helpers (`isAngleAvailable`, `isMetricAvailable`, `getAverageKneeAngle`, `kneesAboveStanding`, `kneesBelowBottom`, `averageNonNull`, `safeMin` / `safeMax` / `safeMaxByMagnitude`).                                                                       |
+| `src/ml/exercises/index.ts`                     | Barrel.                                                                                                                                                                                                                                                        |
+| `src/hooks/useSquatRepDetector.ts`              | Owns one `SquatEngine` per active debug session; consumes `latestAngleSnapshot` from the pose store; resets on disable / unmount; exposes `state`, `repCount`, `latestCountedRep`, `latestRejectedRep`, `debug`, `reset()`, `setDifficulty()`.                 |
+| `src/components/pose-debug/SquatDebugPanel.tsx` | Debug-only squat surface — state, rep count, depth status, bottom dwell, difficulty toggle, latest counted / rejected rep cards, Reset button. Labelled "Squat rep debug" with explicit "Form score: deferred to Phase 21" copy.                               |
+| `src/pages/workout/ActiveWorkoutPage.tsx`       | Renders `SquatDebugPanel` below the angle debug panel; enables the detector only when pose debug is running **and** the current workout's exercise sequence includes `bodyweight-squat`. Otherwise the panel shows an honest unavailable note.                 |
+
+### Pipeline
+
+For each Phase 19 `AngleSnapshot` the squat engine:
+
+1. De-dups by `frameId` so the same frame is never processed twice.
+2. Refuses to count until the user is first observed in `STANDING`
+   (knees ≥ 160°) — starting from a crouch never books rep 1 on the
+   stand-up.
+3. Discards any in-flight rep when required knee angles become
+   unavailable / occluded (`angles_unavailable`, `visibility_lost`).
+4. On STANDING → DESCENDING begins a rep buffer; on DESCENDING →
+   BOTTOM marks bottom-reached; in BOTTOM increments the dwell
+   counter and tracks bottom knee angle / min knee angles / trunk
+   samples / max valgus ratios; on ASCENDING → STANDING validates the
+   rep and either counts it or finalizes a typed rejection.
+
+The engine emits one `SquatFrameResult` per frame containing the
+current and previous state, transition flag, rep count, the latest
+counted or rejected rep (if any just completed), debug metrics, and
+an optional `unavailableReason` when angles couldn't be read.
+
+### Privacy and honesty rules (Phase 20)
+
+- No form score, no coaching cue, no voice / haptic side effect.
+- No "good form" / "bad form" labels — Phase 21 owns that judgment.
+- No rep persistence — engine state is in-memory and resets on stop /
+  unmount / workout change / explicit `reset()`.
+- No fake reps. The engine only counts reps that pass the state
+  machine; half-reps and other failure modes are emitted as typed
+  rejections with the rep count unchanged.
+- No `NaN` / `Infinity` reaches UI — every numeric path either
+  consumes a `null` safely or short-circuits.
+- No per-frame logging, toasts, or network calls.
+
+### Deferred to later phases
+
+- Phase 21 — `SquatFormRules`, `FormScorer`, `CueThrottler`, real form
+  score, primary coaching cue, confidence-gated rules.
+- Phase 22+ — push-up, plank, glute bridge, dead bug, bird dog,
+  reverse lunge, mountain climber, hip hinge engines.
+- Phase 25 — voice coaching.
+- Phase 26 — final active workout HUD and skeleton overlay.
+- Phase 27+ — workout timer / session, completion summary, workout
+  history writes, streak / stat updates.
+- Web Worker + `OffscreenCanvas` migration — the engine is pure
+  TypeScript and trivially worker-portable.
 
 ---
 

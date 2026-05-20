@@ -21,3 +21,4 @@ export { PoseModelStatusCard } from './PoseModelStatusCard';
 export { PoseProcessingStatsCard } from './PoseProcessingStatsCard';
 export { PoseProcessingStatusCard } from './PoseProcessingStatusCard';
 export { PoseVisibilityCard } from './PoseVisibilityCard';
+export { SquatDebugPanel } from './SquatDebugPanel';

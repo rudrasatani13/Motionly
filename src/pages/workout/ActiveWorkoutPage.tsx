@@ -8,12 +8,14 @@ import {
   AngleDebugPanel,
   PoseDebugPanel,
   PoseLandmarkOverlay,
+  SquatDebugPanel,
   type PoseOverlayMode,
 } from '@components/pose-debug';
 import { Button, Card, Column, Icon, Row, Text } from '@components/primitives';
 import { WorkoutNotFoundState } from '@components/workout-detail';
 import { useNavigation } from '@hooks/useNavigation';
 import { usePoseLandmarker } from '@hooks/usePoseLandmarker';
+import { useSquatRepDetector } from '@hooks/useSquatRepDetector';
 import type { CameraFacingMode, CameraSetupError, CameraStreamStatus } from '@/types/camera-setup';
 import {
   isCameraStreamActive,
@@ -53,6 +55,16 @@ export default function ActiveWorkoutPage(): JSX.Element {
   const cameraActive = streamStatus === 'granted' && isCameraStreamActive(stream);
   const poseRunning = pose.status === 'running' || pose.status === 'no-pose';
 
+  const workoutIncludesSquat = useMemo(() => {
+    if (workout === undefined) {
+      return false;
+    }
+    return workout.exerciseSequence.some((item) => item.exerciseId === 'bodyweight-squat');
+  }, [workout]);
+
+  const squatDetectorEnabled = workoutIncludesSquat && poseRunning;
+  const squatDetector = useSquatRepDetector({ enabled: squatDetectorEnabled });
+
   const releaseVideoAndStream = useCallback((): void => {
     const currentVideo = videoRef.current;
     if (currentVideo !== null) {
@@ -70,12 +82,13 @@ export default function ActiveWorkoutPage(): JSX.Element {
   const stopEverything = useCallback((): void => {
     pose.stop();
     releaseVideoAndStream();
+    squatDetector.reset();
     if (mountedRef.current) {
       setStream(null);
       setStreamStatus('idle');
       setStreamError(null);
     }
-  }, [pose, releaseVideoAndStream]);
+  }, [pose, releaseVideoAndStream, squatDetector]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -249,16 +262,17 @@ export default function ActiveWorkoutPage(): JSX.Element {
     >
       <Column gap="xs">
         <Text variant="caption" tone="muted">
-          Active workout · Phase 19 pose + angle debug
+          Active workout · Phase 20 pose + angle + squat-rep debug
         </Text>
         <Text variant="h1" as="h1" id="active-workout-heading">
           {workout.name}
         </Text>
         <Text tone="muted">
           This screen runs real on-device MediaPipe Pose Landmarker inference, processes each frame
-          through Phase 18 smoothing, confidence filtering, and torso-scale normalization, then
-          computes named joint angles on top with Phase 19. Phase 19 calculates joint angles only.
-          Rep counting and form scoring arrive later — nothing on this page is fabricated.
+          through Phase 18 smoothing, confidence filtering, and torso-scale normalization, computes
+          named joint angles with Phase 19, and now detects bodyweight squat reps with the Phase 20
+          state machine. Phase 20 adds squat rep detection only. Form scoring and coaching cues
+          arrive in Phase 21 — nothing on this page is fabricated.
         </Text>
       </Column>
 
@@ -408,10 +422,13 @@ export default function ActiveWorkoutPage(): JSX.Element {
 
       <AngleDebugPanel snapshot={pose.latestAngleSnapshot} stats={pose.angleStats} />
 
+      <SquatDebugPanel controls={squatDetector} />
+
       <Text variant="caption" tone="muted">
-        Phase 19 scope reminder: no rep counter, no form score, no calories, no workout timer, no
-        completion summary, and no workout history are produced on this screen. Rep counting arrives
-        in Phase 20; form scoring and coaching in later phases
+        Phase 20 scope reminder: rep count above is debug/live only — it is not saved, does not mark
+        the workout complete, and does not update any dashboard, summary, or history. Form scoring,
+        coaching cues, voice feedback, workout timers, completion summaries, and workout history
+        arrive in later phases
         {poseRunning ? '. Pose inference is currently active.' : '.'}
       </Text>
     </section>

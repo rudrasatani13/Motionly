@@ -54,6 +54,17 @@ Phase 19 keeps the active route as a **debug shell** — there is still no real 
 
 What Phase 19 **still does not** render: rep counter, workout timer, form score, form cue card, "AI feedback", set/exercise progress, completion summary, calories, workout history writes, voice coaching, and any per-exercise classification of an angle as "good" or "bad". Those land in Phases 20+. The angle debug surface is debug-only and must not be confused with the final coaching UI.
 
+## Phase 20 implementation note
+
+Phase 20 keeps the active route as a **debug shell** — no final workout HUD yet. The Phase 17 raw frame, the Phase 18 processed frame, and the Phase 19 angle snapshot still drive the existing debug surface unchanged. On top of those, Phase 20 now:
+
+- Adds an exercise-engine layer under `src/ml/exercises/`. `SquatEngine` consumes Phase 19 `AngleSnapshot`s frame-by-frame and emits one `SquatFrameResult` per frame. The engine implements the master-plan state machine `STANDING → DESCENDING → BOTTOM → ASCENDING → STANDING` with standing extension at 160°, beginner bottom at < 110°, intermediate bottom at < 90°, a 15-frame minimum bottom dwell, and half-rep rejection with typed reasons.
+- Wires `useSquatRepDetector` into the active page, which owns a single `SquatEngine` per active session, dedups by `frameId`, and resets on disable, on no-pose, on unmount, on Stop pose debug, and when the consumer taps **Reset squat detector**.
+- Renders a new `SquatDebugPanel` below the Phase 19 angle debug surface — only when the current workout's exercise sequence includes `bodyweight-squat`. The panel shows the squat state, the live rep count (debug-only — not persisted), depth status, bottom-dwell frame counter, beginner / intermediate difficulty toggle, latest counted and rejected rep cards with raw metrics (bottom knee angle, min L / R knee, average trunk angle, max L / R knee valgus ratios, duration, bottom dwell frame count), and a Reset button. Form score is explicitly labelled "deferred to Phase 21".
+- Counts only full reps. Half-reps that bounce out of DESCENDING without reaching the depth threshold are emitted as rejected (`half_rep_depth_not_reached`); visibility losses and angle unavailability discard the in-flight rep with typed reasons. Rejections never increment the rep count.
+
+What Phase 20 **still does not** render: real form score, coaching cues, voice / haptic feedback, workout timer / session clock, exercise progress, completion summary, calories, workout history writes, dashboard / streak updates, and the final skeleton overlay. The rep count above is live-only and is not saved to any storage or backend. Those land in Phases 21+.
+
 ## Entry points
 
 - `/workout/:id/setup` → "Continue to workout" CTA → here.
