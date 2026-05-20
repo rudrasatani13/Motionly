@@ -8,12 +8,13 @@ import { OnboardingProgress } from './OnboardingProgress';
 type OnboardingShellProps = {
   currentStepNumber: number;
   totalSteps: number;
-  phaseMaxStepNumber: number;
   headingId: string;
   transitionKey: string;
   backLabel: string;
   primaryLabel: string;
   primaryDisabled?: boolean;
+  primaryLoading?: boolean;
+  primaryLoadingLabel?: string;
   controlsDisabled?: boolean;
   onBack: () => void;
   onPrimary: () => void;
@@ -24,12 +25,13 @@ type OnboardingShellProps = {
 export function OnboardingShell({
   currentStepNumber,
   totalSteps,
-  phaseMaxStepNumber,
   headingId,
   transitionKey,
   backLabel,
   primaryLabel,
   primaryDisabled = false,
+  primaryLoading = false,
+  primaryLoadingLabel,
   controlsDisabled = false,
   onBack,
   onPrimary,
@@ -57,7 +59,6 @@ export function OnboardingShell({
         <OnboardingProgress
           currentStepNumber={currentStepNumber}
           totalSteps={totalSteps}
-          phaseMaxStepNumber={phaseMaxStepNumber}
           disabled={controlsDisabled}
           onStepSelect={onStepSelect}
         />
@@ -78,6 +79,8 @@ export function OnboardingShell({
           size="lg"
           disabled={primaryDisabled || controlsDisabled}
           aria-disabled={primaryDisabled || controlsDisabled}
+          loading={primaryLoading}
+          loadingLabel={primaryLoadingLabel}
           onClick={onPrimary}
         >
           {primaryLabel}

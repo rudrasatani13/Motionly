@@ -57,31 +57,31 @@ Higher layers compose lower ones. A page may call a service, a service may call 
 
 Each folder also has its own `README.md` with the in-folder rules. The summary below is the canonical map.
 
-| Folder                       | Responsibility                                                                        | Introduced by                  |
-| ---------------------------- | ------------------------------------------------------------------------------------- | ------------------------------ |
-| `src/assets/`                | Static assets imported by application code (Vite-bundled).                            | Phase 5+ as needed             |
-| `src/components/`            | Shared, reusable UI primitives and composite components. Props in, JSX out.           | Phase 8 — Component primitives |
-| `src/components/primitives/` | Phase 8 reusable UI primitives (`Button`, `Input`, `Card`, …).                        | Phase 8 — Component primitives |
-| `src/components/feedback/`   | Phase 9 feedback / status / progress components (`CircularProgress`, `Toast`, …).     | Phase 9 — Feedback components  |
-| `src/components/launch/`     | Phase 10 launch UI — animated `LaunchScreen` + SW update prompt hook.                 | Phase 10 — Splash & launch     |
-| `src/components/onboarding/` | Phase 11 onboarding flow components for screens 1–3.                                  | Phase 11 — Onboarding 1–3      |
-| `src/components/routing/`    | Phase 6 routing-infrastructure components (`RoutePlaceholder`, …).                    | Phase 6 — Routing              |
-| `src/launch/`                | Phase 10 launch orchestration — `LaunchGate`, `useLaunchDecision`, auth placeholder.  | Phase 10 — Splash & launch     |
-| `src/pages/`                 | Route-level screens. One file per top-level URL.                                      | Phase 10+                      |
-| `src/router/`                | React Router 6 config, guards, route params, navigation helpers, and routing layouts. | Phase 6 — Routing              |
-| `src/hooks/`                 | Custom React hooks shared across the app.                                             | As needed                      |
-| `src/store/`                 | Global state (Zustand stores). Phase 11 starts with an in-memory onboarding draft.    | Phase 11+                      |
-| `src/services/`              | API clients (Supabase), analytics, subscriptions, persistence orchestration.          | Phase 31+                      |
-| `src/platform/`              | Thin adapters around browser-only APIs. The single chokepoint to the host.            | Phase 16+ (camera first)       |
-| `src/ml/`                    | On-device ML: pose, joint angles, exercise state machines.                            | Phase 17+                      |
-| `src/ml/pose/`               | MediaPipe wrapper, landmark normalization, smoothing.                                 | Phase 17 / 18                  |
-| `src/ml/exercises/`          | Per-exercise state machines (rep counting, form cues).                                | Phase 22+                      |
-| `src/ml/angles/`             | Pure joint-angle math.                                                                | Phase 20                       |
-| `src/i18n/`                  | i18n configuration and translation catalogs.                                          | Phase 42 / 43                  |
-| `src/theme/`                 | Theme provider, theme hook, motion constants, and helpers for Tailwind theme mode.    | Phase 5 / 46                   |
-| `src/utils/`                 | Pure helpers with no React or DOM dependencies.                                       | As needed                      |
-| `src/types/`                 | Cross-feature TypeScript domain types and ambient declarations.                       | As needed                      |
-| `src/workers/`               | Web Worker entry points (pose inference, heavy compute).                              | Phase 19                       |
+| Folder                       | Responsibility                                                                                       | Introduced by                  |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `src/assets/`                | Static assets imported by application code (Vite-bundled).                                           | Phase 5+ as needed             |
+| `src/components/`            | Shared, reusable UI primitives and composite components. Props in, JSX out.                          | Phase 8 — Component primitives |
+| `src/components/primitives/` | Phase 8 reusable UI primitives (`Button`, `Input`, `Card`, …).                                       | Phase 8 — Component primitives |
+| `src/components/feedback/`   | Phase 9 feedback / status / progress components (`CircularProgress`, `Toast`, …).                    | Phase 9 — Feedback components  |
+| `src/components/launch/`     | Phase 10 launch UI — animated `LaunchScreen` + SW update prompt hook.                                | Phase 10 — Splash & launch     |
+| `src/components/onboarding/` | Phase 11–12 onboarding flow components (welcome, goal, fitness level, limitations, camera tutorial). | Phase 11–12 — Onboarding       |
+| `src/components/routing/`    | Phase 6 routing-infrastructure components (`RoutePlaceholder`, …).                                   | Phase 6 — Routing              |
+| `src/launch/`                | Phase 10 launch orchestration — `LaunchGate`, `useLaunchDecision`, auth placeholder.                 | Phase 10 — Splash & launch     |
+| `src/pages/`                 | Route-level screens. One file per top-level URL.                                                     | Phase 10+                      |
+| `src/router/`                | React Router 6 config, guards, route params, navigation helpers, and routing layouts.                | Phase 6 — Routing              |
+| `src/hooks/`                 | Custom React hooks shared across the app.                                                            | As needed                      |
+| `src/store/`                 | Global state (Zustand stores). Phase 11 starts with an in-memory onboarding draft.                   | Phase 11+                      |
+| `src/services/`              | API clients (Supabase), analytics, subscriptions, persistence orchestration.                         | Phase 31+                      |
+| `src/platform/`              | Thin adapters around browser-only APIs. The single chokepoint to the host.                           | Phase 16+ (camera first)       |
+| `src/ml/`                    | On-device ML: pose, joint angles, exercise state machines.                                           | Phase 17+                      |
+| `src/ml/pose/`               | MediaPipe wrapper, landmark normalization, smoothing.                                                | Phase 17 / 18                  |
+| `src/ml/exercises/`          | Per-exercise state machines (rep counting, form cues).                                               | Phase 22+                      |
+| `src/ml/angles/`             | Pure joint-angle math.                                                                               | Phase 20                       |
+| `src/i18n/`                  | i18n configuration and translation catalogs.                                                         | Phase 42 / 43                  |
+| `src/theme/`                 | Theme provider, theme hook, motion constants, and helpers for Tailwind theme mode.                   | Phase 5 / 46                   |
+| `src/utils/`                 | Pure helpers with no React or DOM dependencies.                                                      | As needed                      |
+| `src/types/`                 | Cross-feature TypeScript domain types and ambient declarations.                                      | As needed                      |
+| `src/workers/`               | Web Worker entry points (pose inference, heavy compute).                                             | Phase 19                       |
 
 > Phase 4 created the folders and rules. Phase 5 populates the theme foundation, Phase 6 the routing skeleton, Phase 7 the UX planning docs only, Phase 8 the primitive UI library (`src/components/primitives/`) plus the haptics platform adapter (`src/platform/haptics.ts`) and the `src/utils/cn.ts` class-composition helper, Phase 9 the feedback / status component library (`src/components/feedback/`) plus the `src/utils/score.ts` and `src/utils/formatDuration.ts` helpers, Phase 10 the launch layer, and Phase 11 the first in-memory onboarding store plus screens 1–3. Remaining product screens, durable persistence, and feature logic still land in their own phases.
 
@@ -170,7 +170,9 @@ If you find yourself reaching for `navigator.*`, `window.*`, `document.*`, `loca
 
 **Phase 8 haptics adapter:** `src/platform/haptics.ts` is the first real platform adapter — a thin wrapper around `navigator.vibrate(10)` exposed as `triggerLightHaptic()`. Components (currently only `Button`, when its `haptic` prop is set) call this helper instead of touching `navigator.*` directly. It no-ops safely on unsupported devices (Safari, iOS) and requires no permissions.
 
-**Phase 10 onboarding-storage adapter:** `src/platform/onboarding-storage.ts` exposes a read-only `readHasOnboarded()` so the launch gate has a single chokepoint for the `hasOnboarded` flag. It tries to open the future `motionly` IndexedDB database without creating it; if the database / store / key is missing — or if anything errors — it resolves to `false`. Writing `hasOnboarded = true` is intentionally out of scope until Phase 12 implements onboarding completion and Phase 30 ships the IndexedDB schema.
+**Phase 10 onboarding-storage adapter:** `src/platform/onboarding-storage.ts` exposes the read-only `readHasOnboarded()` so the launch gate has a single chokepoint for the `hasOnboarded` flag. It tries to open the future `motionly` IndexedDB database without creating it; if the database / store / key is missing — or if anything errors — it resolves to `false`. **Phase 12** extended the same adapter with a write path (`completeOnboardingStorage()`) that creates the database / store on demand and persists `hasOnboarded = true` plus a minimal completion record. Phase 30 will replace this small adapter with the real storage layer.
+
+**Phase 12 camera-permission adapter:** `src/platform/camera-permission.ts` is the only Phase 12 caller of `navigator.mediaDevices.getUserMedia`. `requestCameraPermissionForOnboarding()` asks for video only, stops every track immediately after permission resolves, and returns a tagged `granted | denied | unavailable | error` result so callers stay declarative. No stream, frame, preview, recording, or upload ever leaves the adapter. Live preview, silhouette detection, and pose inference belong to later camera / ML phases — Phase 12 deliberately stops at the permission prompt.
 
 ---
 
@@ -445,25 +447,25 @@ Phase 10 wires Motionly's launch experience: a pre-React HTML splash in `index.h
 
 ### Module map
 
-| File                                                    | Responsibility                                                                                                   |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `index.html` (`<style>` + `#root > .motionly-splash`)   | Inline pre-React splash. Dark `#0A0A0F` canvas + wordmark + tagline; replaced cleanly when React mounts.         |
-| `src/components/launch/LaunchScreen.tsx`                | Animated React launch screen (Framer Motion scale + fade; tagline fades in ~200ms later; reduced-motion aware).  |
-| `src/components/launch/useServiceWorkerUpdatePrompt.ts` | Hook that listens for `motionly:sw` `update-available` and shows the "Refresh to use the latest version." toast. |
-| `src/components/launch/index.ts`                        | Barrel for the launch UI subpackage.                                                                             |
-| `src/launch/LaunchGate.tsx`                             | Outer gate. Holds the launch screen on screen until the decision settles; releases `<AppRouter>` afterwards.     |
-| `src/launch/useLaunchDecision.ts`                       | Minimum-brand-window + `hasOnboarded` + auth-placeholder resolver. Applies the URL redirect before `setState`.   |
-| `src/launch/launch-state.ts`                            | `LaunchAuthState`, `LaunchInputs`, `LaunchDecision` types.                                                       |
-| `src/launch/auth-state.ts`                              | `getLaunchAuthState()` — future-safe Supabase rehydration placeholder; always returns `not-implemented` today.   |
-| `src/launch/index.ts`                                   | Barrel for the launch orchestration subpackage.                                                                  |
-| `src/platform/onboarding-storage.ts`                    | Read-only `readHasOnboarded()` IndexedDB chokepoint. Fails safe to `false` until Phase 12 / 30 land.             |
+| File                                                    | Responsibility                                                                                                                             |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `index.html` (`<style>` + `#root > .motionly-splash`)   | Inline pre-React splash. Dark `#0A0A0F` canvas + wordmark + tagline; replaced cleanly when React mounts.                                   |
+| `src/components/launch/LaunchScreen.tsx`                | Animated React launch screen (Framer Motion scale + fade; tagline fades in ~200ms later; reduced-motion aware).                            |
+| `src/components/launch/useServiceWorkerUpdatePrompt.ts` | Hook that listens for `motionly:sw` `update-available` and shows the "Refresh to use the latest version." toast.                           |
+| `src/components/launch/index.ts`                        | Barrel for the launch UI subpackage.                                                                                                       |
+| `src/launch/LaunchGate.tsx`                             | Outer gate. Holds the launch screen on screen until the decision settles; releases `<AppRouter>` afterwards.                               |
+| `src/launch/useLaunchDecision.ts`                       | Minimum-brand-window + `hasOnboarded` + auth-placeholder resolver. Applies the URL redirect before `setState`.                             |
+| `src/launch/launch-state.ts`                            | `LaunchAuthState`, `LaunchInputs`, `LaunchDecision` types.                                                                                 |
+| `src/launch/auth-state.ts`                              | `getLaunchAuthState()` — future-safe Supabase rehydration placeholder; always returns `not-implemented` today.                             |
+| `src/launch/index.ts`                                   | Barrel for the launch orchestration subpackage.                                                                                            |
+| `src/platform/onboarding-storage.ts`                    | Read-only `readHasOnboarded()` + Phase 12 `completeOnboardingStorage()` write path. Honest IndexedDB chokepoint; Phase 30 will replace it. |
 
 ### Responsibilities
 
 - **`<LaunchGate>`** wraps the routing tree. While `useLaunchDecision` is pending it renders `<LaunchScreen>`; once the decision resolves it renders its `children` (the `<AppRouter>`). The gate sits **outside** the router so the URL can be reconciled before `<BrowserRouter>` reads `window.location.pathname` on mount.
 - **`useLaunchDecision`** awaits two promises in parallel — a `LAUNCH_MIN_VISIBLE_MS` (≈1.8s) brand window and the underlying reads — then picks the destination. Before `setState` flips `ready` to `true`, it applies an idempotent `history.replaceState` so the router mounts on the canonical pathname. Only `/` is rewritten; direct deep links (Phase 6 placeholders, `/welcome`, `/workouts`, `/workout/test-id/setup`, etc.) stay where the user opened them.
 - **`getLaunchAuthState`** is the single named hook for "what does auth say at launch?". It returns `{ status: 'not-implemented', reason: 'auth-deferred-to-backend-phase' }` today. Real Supabase session rehydration lands in the planned backend / auth phase (Phase 32 per the master plan); no fake users, no fake tokens, no mock sessions ship in Phase 10.
-- **`readHasOnboarded`** is the read-only IndexedDB chokepoint for the onboarding flag. Phase 10 only reads — writing `hasOnboarded = true` belongs to Phase 12 once the onboarding completion step exists, and the real IndexedDB schema lands with Phase 30. Until then the reader has nothing to read and resolves to `false`, so first launches honestly route to `/welcome`.
+- **`readHasOnboarded`** is the read-only IndexedDB chokepoint for the onboarding flag. Phase 10 introduced it as read-only; Phase 12 added the matching `completeOnboardingStorage()` write path that creates the IndexedDB store on demand and persists `hasOnboarded = true` plus a minimal completion record. Phase 30 will replace the small Phase 12 storage with the real schema.
 
 ### Rules
 
@@ -475,7 +477,7 @@ Phase 10 wires Motionly's launch experience: a pre-React HTML splash in `index.h
 
 ### Deferred to later phases
 
-- **Writing `hasOnboarded`.** Phase 12 (onboarding completion) owns the write path. Phase 30 (storage adapter) introduces the IndexedDB schema the reader will eventually read.
+- **Writing `hasOnboarded`.** Phase 12 added the write path (`completeOnboardingStorage`). Phase 30 (storage adapter) introduces the durable IndexedDB schema that will eventually replace the Phase 12 minimal store.
 - **Real session rehydration.** Phase 32 (backend / auth) swaps the `getLaunchAuthState` placeholder for a real Supabase session read.
 - **Real protected redirect rules.** `<RequireAuth>` remains structural-only until Phase 32; the launch gate does not pre-implement production-grade redirect logic.
 
@@ -503,9 +505,39 @@ Phase 11 turns the `/welcome` and `/onboarding` placeholders into the first half
 
 ### Deferred to later phases
 
-- **Screens 4–5.** Movement limitations and camera tutorial are Phase 12.
-- **Completion writes.** Writing `hasOnboarded = true` remains Phase 12 / Phase 30 storage work.
-- **Camera, ML, auth, Supabase, dashboard, workouts, payments, analytics.** Phase 11 does not pre-implement or fake any of these systems.
+- **Camera live preview, silhouette detection, ML, auth, Supabase, dashboard, workouts, payments, analytics.** Phase 11 / Phase 12 do not pre-implement or fake any of these systems.
+
+---
+
+## 10h. Onboarding Flow: Screens 4–5 + Completion (Phase 12)
+
+Phase 12 completes the onboarding flow added in Phase 11. The route surface (`/onboarding`) is unchanged; the new steps live inside the existing single-route internal step machine.
+
+### Module map
+
+| File / folder                                      | Responsibility                                                                                                                            |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/types/onboarding.ts`                          | Extended with `MovementLimitation`, `CameraPermissionStatus`, the full 5-entry `OnboardingStep` union, and a wider `OnboardingDraft`.     |
+| `src/store/useOnboardingStore.ts`                  | Adds limitations, optional notes, camera-permission status, and the in-memory completion timestamp; mutually-exclusive "None" lives here. |
+| `src/components/onboarding/LimitationsStep.tsx`    | Step 4: multi-select chips + optional ≤120-character free-text note with safety copy.                                                     |
+| `src/components/onboarding/CameraTutorialStep.tsx` | Step 5: 3-step setup primer, permission status messaging, and "Continue without camera for now" secondary action.                         |
+| `src/platform/camera-permission.ts`                | New platform adapter; the only Phase 12 caller of `navigator.mediaDevices.getUserMedia`.                                                  |
+| `src/platform/onboarding-storage.ts`               | Gains `completeOnboardingStorage()` write path (creates the IndexedDB store on demand and persists the completion record).                |
+| `src/pages/auth/OnboardingPage.tsx`                | Wires all five steps, the camera CTA flow, and navigation to Home `/` on completion.                                                      |
+
+### Responsibilities
+
+- **Camera adapter (`camera-permission.ts`)** is the single chokepoint that touches `navigator.mediaDevices.getUserMedia`. It requests **video only**, stops every track immediately after permission resolves, and returns a tagged result so product code never inspects DOM exceptions. No stream, frame, preview, recording, or upload leaves this module.
+- **Onboarding storage (`onboarding-storage.ts`)** keeps the read-only Phase 10 `readHasOnboarded()` and adds `completeOnboardingStorage()`. The writer creates the `motionly` IndexedDB database / `onboarding` object store on demand and persists `hasOnboarded = true` alongside a minimal `OnboardingCompletionRecord` (timestamp, goals, fitness level, limitations, optional notes, whether camera was granted). It returns a typed success/failure result rather than throwing. **No fake user IDs, sessions, or account data; no media data.** This Phase 12 storage is intentionally small and isolated so Phase 30's storage rewrite can replace it cleanly.
+- **`/onboarding` completion** runs through the camera step. On grant, the page writes the completion record, flips `hasOnboarded = true`, and navigates to Home `/`. On denial / unavailable / error the page shows clear guidance plus an honest "Continue without camera for now" secondary action that writes the same record (with `cameraPermissionGranted: false`) and navigates Home — it never claims permission was granted.
+- **LaunchGate behavior after completion.** `readHasOnboarded()` now returns the real persisted value, so subsequent launches of `/` no longer redirect returning users to `/welcome`. Clearing site data resets the flag and restores first-time behavior.
+
+### Deferred to later phases
+
+- **Supabase sync.** Backend / auth is not connected; Phase 12 intentionally skips Supabase. A short note lives in `onboarding-storage.ts`.
+- **Live camera preview, silhouette detection, ML, skeleton overlay, rep counting, form scoring.** Phase 12 only primes the permission; the real camera setup lives in Phase 16.
+- **Real dashboard, workouts, streaks, stats, subscriptions, analytics.** Home `/` remains the Phase 6 placeholder after completion.
+- **IndexedDB schema rewrite.** Phase 30 owns the real storage adapter; the Phase 12 store is the minimum viable persistence to unlock the launch gate.
 
 ---
 

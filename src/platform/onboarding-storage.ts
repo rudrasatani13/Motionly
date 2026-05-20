@@ -1,34 +1,55 @@
 /**
- * Phase 10 — Onboarding storage platform adapter.
+ * Phase 10 → Phase 12 — Onboarding storage platform adapter.
  *
- * Read-only chokepoint for the `hasOnboarded` flag. Following the
+ * Single chokepoint for the `hasOnboarded` flag. Following the
  * platform-adapter rule (`docs/ARCHITECTURE.md` §6), any browser
- * storage access required to resolve the launch decision lives here
- * instead of leaking into product code.
+ * storage access for the launch decision lives here instead of
+ * leaking into product code.
  *
- * Phase 10 boundaries:
- * - **Read only.** No writes. Writing `hasOnboarded = true` belongs
- *   to Phase 12 once the onboarding flow's completion step exists.
- * - **No schema yet.** Phase 30 introduces the real IndexedDB schema
- *   (`useStorageAdapter`, idb-keyval, etc.). Until then this reader
- *   intentionally has nothing to read and resolves to `false`.
- * - **Honest fallback.** If IndexedDB is unavailable (private mode,
- *   unsupported browser, error opening the database, missing
- *   store / key) the reader fails safely to `false` so the launch
- *   gate routes the user to `/welcome`. No fake first-time user is
- *   ever invented; `false` is the truthful answer when no flag has
- *   been written.
- * - **No fake seeds.** This module must not write demo flags, must
- *   not respect a query-string override, and must not surface a UI
- *   toggle to fake onboarding completion.
- *
- * When Phase 30 lands, only the implementation of `readHasOnboarded`
- * changes; every consumer continues to call the same async function.
+ * Boundaries:
+ * - **Read** path (`readHasOnboarded`) was introduced in Phase 10 to
+ *   resolve the launch destination. It fails safely to `false`.
+ * - **Write** path (`completeOnboardingStorage`) was added in Phase
+ *   12 for the onboarding completion step. It writes
+ *   `hasOnboarded = true` plus a minimal completion payload
+ *   (timestamp, goals, fitness level, limitations, optional notes).
+ *   It must not write fake user IDs, sessions, accounts, workouts,
+ *   stats, or camera/media data. Supabase sync is deferred until
+ *   backend/auth phases — see master plan Phase 12 notes.
+ * - **No long-term schema.** Phase 30 will replace this with the
+ *   real IndexedDB schema (`useStorageAdapter`, idb-keyval, etc.).
+ *   This Phase 12 adapter is intentionally small and isolated so
+ *   the swap is a localized refactor.
+ * - **Honest fallback.** Failures collapse to typed result objects —
+ *   no throwing — so callers always know whether the flag was
+ *   persisted.
  */
 
 const ONBOARDING_DB_NAME = 'motionly';
+const ONBOARDING_DB_VERSION = 1;
 const ONBOARDING_STORE_NAME = 'onboarding';
 const ONBOARDING_HAS_ONBOARDED_KEY = 'hasOnboarded';
+const ONBOARDING_COMPLETION_KEY = 'completion';
+
+/**
+ * Shape persisted alongside the `hasOnboarded` flag in Phase 12.
+ *
+ * Everything in this payload comes from the user's onboarding
+ * answers. No fake or synthesized fields. Phase 30 may extend or
+ * rename this once it owns the storage layer.
+ */
+export type OnboardingCompletionRecord = {
+  completedAt: string;
+  goals: string[];
+  fitnessLevel: string | null;
+  limitations: string[];
+  limitationNotes: string;
+  cameraPermissionGranted: boolean;
+};
+
+export type CompleteOnboardingResult =
+  | { ok: true }
+  | { ok: false; reason: 'storage-unavailable' | 'write-failed' };
 
 function canUseIndexedDB(): boolean {
   if (typeof globalThis === 'undefined') {
@@ -50,8 +71,8 @@ function openExistingDatabase(): Promise<IDBDatabase | null> {
       resolve(null);
       return;
     }
-    // Phase 10 must not create the schema — Phase 30 owns that. If the
-    // database does not exist yet, abort the open and resolve `null`.
+    // Reader must not create the schema. If the database does not
+    // exist or lacks the store, abort the open and resolve `null`.
     request.onupgradeneeded = () => {
       try {
         request.transaction?.abort();
@@ -70,6 +91,35 @@ function openExistingDatabase(): Promise<IDBDatabase | null> {
       }
       resolve(db);
     };
+  });
+}
+
+function openOrCreateDatabase(): Promise<IDBDatabase | null> {
+  return new Promise((resolve) => {
+    if (!canUseIndexedDB()) {
+      resolve(null);
+      return;
+    }
+    let request: IDBOpenDBRequest;
+    try {
+      request = indexedDB.open(ONBOARDING_DB_NAME, ONBOARDING_DB_VERSION);
+    } catch {
+      resolve(null);
+      return;
+    }
+    request.onupgradeneeded = () => {
+      try {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(ONBOARDING_STORE_NAME)) {
+          db.createObjectStore(ONBOARDING_STORE_NAME);
+        }
+      } catch {
+        // Ignore — error/blocked handlers below resolve null.
+      }
+    };
+    request.onerror = () => resolve(null);
+    request.onblocked = () => resolve(null);
+    request.onsuccess = () => resolve(request.result);
   });
 }
 
@@ -94,13 +144,36 @@ function readBooleanFromStore(db: IDBDatabase, key: string): Promise<boolean> {
   });
 }
 
+function writeCompletionToStore(
+  db: IDBDatabase,
+  completion: OnboardingCompletionRecord,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    let tx: IDBTransaction;
+    try {
+      tx = db.transaction(ONBOARDING_STORE_NAME, 'readwrite');
+    } catch {
+      resolve(false);
+      return;
+    }
+    const store = tx.objectStore(ONBOARDING_STORE_NAME);
+    try {
+      store.put(true, ONBOARDING_HAS_ONBOARDED_KEY);
+      store.put(completion, ONBOARDING_COMPLETION_KEY);
+    } catch {
+      resolve(false);
+      return;
+    }
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => resolve(false);
+    tx.onabort = () => resolve(false);
+  });
+}
+
 /**
  * Resolve the persisted `hasOnboarded` flag, or `false` when no real
  * flag has been written. Never throws — failures collapse to `false`
  * so the launch gate can route the user to `/welcome` honestly.
- *
- * Until Phase 12 writes the flag and Phase 30 ships the IndexedDB
- * schema, this resolves to `false` for every user.
  */
 export async function readHasOnboarded(): Promise<boolean> {
   try {
@@ -115,5 +188,34 @@ export async function readHasOnboarded(): Promise<boolean> {
     }
   } catch {
     return false;
+  }
+}
+
+/**
+ * Persist the Phase 12 onboarding completion payload and flip
+ * `hasOnboarded` to `true`. Returns a typed result rather than
+ * throwing so the UI can react honestly when IndexedDB is missing
+ * (private mode, unsupported browser).
+ *
+ * The payload is intentionally minimal — it does not contain a user
+ * account, session, workouts, stats, or any media data. Phase 30
+ * will replace this storage layer with the real one.
+ */
+export async function completeOnboardingStorage(
+  completion: OnboardingCompletionRecord,
+): Promise<CompleteOnboardingResult> {
+  try {
+    const db = await openOrCreateDatabase();
+    if (db === null) {
+      return { ok: false, reason: 'storage-unavailable' };
+    }
+    try {
+      const wrote = await writeCompletionToStore(db, completion);
+      return wrote ? { ok: true } : { ok: false, reason: 'write-failed' };
+    } finally {
+      db.close();
+    }
+  } catch {
+    return { ok: false, reason: 'write-failed' };
   }
 }

@@ -14,7 +14,6 @@ const STEP_LABELS = [
 type OnboardingProgressProps = {
   currentStepNumber: number;
   totalSteps: number;
-  phaseMaxStepNumber: number;
   disabled?: boolean;
   onStepSelect: (stepNumber: number) => void;
 };
@@ -32,7 +31,6 @@ function dotClassName(status: 'completed' | 'current' | 'future'): string {
 export function OnboardingProgress({
   currentStepNumber,
   totalSteps,
-  phaseMaxStepNumber,
   disabled = false,
   onStepSelect,
 }: OnboardingProgressProps): JSX.Element {
@@ -44,8 +42,7 @@ export function OnboardingProgress({
           const stepLabel = STEP_LABELS[index] ?? `Step ${stepNumber}`;
           const isCompleted = stepNumber < currentStepNumber;
           const isCurrent = stepNumber === currentStepNumber;
-          const isAvailableInPhase = stepNumber <= phaseMaxStepNumber;
-          const canNavigateBack = isCompleted && isAvailableInPhase && !disabled;
+          const canNavigateBack = isCompleted && !disabled;
           const status = isCompleted ? 'completed' : isCurrent ? 'current' : 'future';
           const baseClassName = cn(
             'flex h-3 w-3 items-center justify-center rounded-full border transition-colors duration-150',
@@ -75,7 +72,7 @@ export function OnboardingProgress({
                       ? `Current step ${stepNumber}: ${stepLabel}`
                       : disabled && isCompleted
                         ? `Step ${stepNumber}: ${stepLabel} is unavailable while the current transition finishes`
-                        : `Step ${stepNumber}: ${stepLabel} is not available in Phase 11`
+                        : `Step ${stepNumber}: ${stepLabel} is upcoming`
                   }
                   role="img"
                 />

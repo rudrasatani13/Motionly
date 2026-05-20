@@ -151,6 +151,22 @@ Phase 11 introduces `/welcome`, the first three internal `/onboarding` steps, an
 
 ---
 
+## 6g. Onboarding Screens 4–5 + Completion (Phase 12)
+
+Phase 12 completes onboarding with the limitations screen, the camera tutorial / permission primer, and the IndexedDB completion write. The rules below protect the phase boundary.
+
+- **No medical claims, no diagnosis, no injury-prevention promises.** The limitations screen is a comfort-driven check-in, not a medical form. Do not ask for pain severity, diagnoses, surgical history, medications, or treatment details. Do not imply Motionly can prevent injury or replace medical care.
+- **No fake adaptation logic yet.** Selecting a limitation must not change workouts, recommendations, exercise lists, or coaching copy in Phase 12 — adaptation belongs to later workout-library / pre-workout phases.
+- **Camera permission must be user-initiated.** `navigator.mediaDevices.getUserMedia` may only be called from `src/platform/camera-permission.ts`, and only after the user taps the primary CTA on the camera tutorial step. Never auto-prompt on page load, on step entry, or during a transition.
+- **Video stream must be stopped immediately in Phase 12.** The adapter requests video only, never audio, and calls `track.stop()` on every track before returning. No `MediaStream`, frame, or `MediaRecorder` reference may outlive the adapter call in this phase.
+- **No raw video storage or upload.** Phase 12 must not write frames, recordings, snapshots, or screenshots to any storage, blob URL, server, or analytics. The completion record persists user answers only.
+- **No fake "camera ready" state.** Only set `cameraPermissionStatus` to `granted` when the browser actually returns a stream. Denial, unavailable, and error states must remain visibly distinct from granted; do not collapse them to a single "good to go" message.
+- **No live preview, silhouette, or skeleton overlay.** The tutorial cards are static (with optional reduced-motion-aware entrance animations). Live video, ML preview, and pose overlay are deferred to later camera phases.
+- **Honest "Continue without camera for now" exit.** This path writes the completion record with `cameraPermissionGranted: false` and is the only acceptable way to bypass a failed prompt; it must not claim the camera was granted.
+- **Onboarding storage stays minimal.** `src/platform/onboarding-storage.ts` may persist `hasOnboarded = true` plus a minimal completion record (timestamp, goals, fitness level, limitations, notes, camera-granted boolean). It may not store fake users, sessions, accounts, workouts, stats, AI scores, or any camera/media data. Supabase sync is intentionally skipped until backend/auth phases land.
+
+---
+
 ## 7. Styling
 
 - **Tailwind is the styling foundation.** Use Tailwind utilities and the Motionly tokens defined in `tailwind.config.ts` for product styling. Keep global CSS limited to Tailwind directives and app-wide browser defaults.

@@ -3,79 +3,132 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 import type { OnboardingStep } from '@/types/onboarding';
 import {
+  CameraTutorialStep,
   FitnessLevelStep,
   GoalSelectionStep,
+  LimitationsStep,
   OnboardingShell,
-  Phase12HandoffPanel,
   WelcomeStep,
 } from '@components/onboarding';
 import { useNavigation } from '@hooks/useNavigation';
 import {
+  requestCameraPermissionForOnboarding,
+  type CameraPermissionResult,
+} from '@platform/camera-permission';
+import { completeOnboardingStorage } from '@platform/onboarding-storage';
+import {
   getOnboardingStepNumber,
+  ONBOARDING_STEP_ORDER,
   ONBOARDING_TOTAL_STEPS,
-  PHASE_11_ONBOARDING_STEPS,
   useOnboardingStore,
 } from '@store/useOnboardingStore';
 
 type TransitionDirection = 1 | -1;
 
-const STEP_BY_NUMBER: Record<number, OnboardingStep> = {
-  1: 'welcome',
-  2: 'goal',
-  3: 'fitness_level',
-};
-
 function getStepFromNumber(stepNumber: number): OnboardingStep | null {
-  return STEP_BY_NUMBER[stepNumber] ?? null;
+  return ONBOARDING_STEP_ORDER[stepNumber - 1] ?? null;
+}
+
+function deniedMessageFor(reason: 'user-blocked' | 'security'): string {
+  if (reason === 'security') {
+    return 'Your browser blocked the request for security reasons. Make sure the page is loaded over HTTPS (or localhost) and try again.';
+  }
+  return 'Camera access was blocked. Open your browser site settings to allow camera, then tap Allow camera access again.';
+}
+
+function unavailableMessageFor(
+  reason: 'no-camera' | 'unsupported-browser' | 'insecure-context',
+): string {
+  if (reason === 'no-camera') {
+    return 'No camera was detected on this device.';
+  }
+  if (reason === 'unsupported-browser') {
+    return 'This browser does not support camera access.';
+  }
+  return 'This page is not running on a secure connection (HTTPS or localhost), so the camera cannot be used yet.';
 }
 
 export default function OnboardingPage(): JSX.Element {
-  const { goToWelcome } = useNavigation();
+  const { goToWelcome, goHome } = useNavigation();
   const prefersReducedMotion = useReducedMotion();
   const [transitionDirection, setTransitionDirection] = useState<TransitionDirection>(1);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [showPhase12Handoff, setShowPhase12Handoff] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const currentStep = useOnboardingStore((state) => state.currentStep);
   const selectedGoals = useOnboardingStore((state) => state.selectedGoals);
   const selectedFitnessLevel = useOnboardingStore((state) => state.selectedFitnessLevel);
+  const selectedLimitations = useOnboardingStore((state) => state.selectedLimitations);
+  const limitationNotes = useOnboardingStore((state) => state.limitationNotes);
+  const cameraPermissionStatus = useOnboardingStore((state) => state.cameraPermissionStatus);
+  const cameraPermissionErrorMessage = useOnboardingStore(
+    (state) => state.cameraPermissionErrorMessage,
+  );
   const setStep = useOnboardingStore((state) => state.setStep);
   const goNext = useOnboardingStore((state) => state.goNext);
   const goBack = useOnboardingStore((state) => state.goBack);
   const toggleGoal = useOnboardingStore((state) => state.toggleGoal);
   const setFitnessLevel = useOnboardingStore((state) => state.setFitnessLevel);
+  const toggleLimitation = useOnboardingStore((state) => state.toggleLimitation);
+  const setLimitationNotes = useOnboardingStore((state) => state.setLimitationNotes);
+  const setCameraPermissionStatus = useOnboardingStore((state) => state.setCameraPermissionStatus);
+  const setCameraPermissionErrorMessage = useOnboardingStore(
+    (state) => state.setCameraPermissionErrorMessage,
+  );
+  const markOnboardingCompleteInMemory = useOnboardingStore(
+    (state) => state.markOnboardingCompleteInMemory,
+  );
 
   const currentStepNumber = getOnboardingStepNumber(currentStep);
-  const viewKey = showPhase12Handoff ? 'phase-12-handoff' : currentStep;
-  const headingId = `onboarding-${viewKey}-heading`;
-  const continueDisabled =
-    currentStep === 'goal'
-      ? selectedGoals.length === 0
-      : currentStep === 'fitness_level' && showPhase12Handoff === false
-        ? selectedFitnessLevel === null
-        : false;
-  const primaryLabel = showPhase12Handoff
-    ? 'Revise Fitness Level'
-    : currentStep === 'welcome'
-      ? 'Get Started'
-      : 'Continue';
-  const backLabel = showPhase12Handoff
-    ? 'Return to fitness level selection'
-    : currentStep === 'welcome'
+  const headingId = `onboarding-${currentStep}-heading`;
+
+  function isContinueDisabled(): boolean {
+    if (currentStep === 'goal') {
+      return selectedGoals.length === 0;
+    }
+    if (currentStep === 'fitness_level') {
+      return selectedFitnessLevel === null;
+    }
+    if (currentStep === 'limitations') {
+      // Require either at least one specific limitation or an explicit
+      // "None" so the user always answers consciously.
+      return selectedLimitations.length === 0;
+    }
+    return false;
+  }
+
+  const continueDisabled = isContinueDisabled();
+
+  function primaryLabelFor(): string {
+    if (currentStep === 'welcome') {
+      return 'Get Started';
+    }
+    if (currentStep === 'camera_tutorial') {
+      if (cameraPermissionStatus === 'denied' || cameraPermissionStatus === 'error') {
+        return 'Try again';
+      }
+      return 'Allow camera access';
+    }
+    return 'Continue';
+  }
+
+  const primaryLabel = primaryLabelFor();
+  const primaryLoading =
+    currentStep === 'camera_tutorial' && (cameraPermissionStatus === 'requesting' || isCompleting);
+  const primaryLoadingLabel = isCompleting
+    ? 'Saving your preferences…'
+    : 'Requesting camera permission…';
+
+  const backLabel =
+    currentStep === 'welcome'
       ? 'Back to welcome page'
       : `Back to onboarding step ${currentStepNumber - 1}`;
 
   function handleBack(): void {
-    if (isTransitioning) {
+    if (isTransitioning || isCompleting) {
       return;
     }
-
     setTransitionDirection(-1);
-    if (showPhase12Handoff) {
-      setIsTransitioning(true);
-      setShowPhase12Handoff(false);
-      return;
-    }
     if (currentStep === 'welcome') {
       goToWelcome();
       return;
@@ -84,55 +137,82 @@ export default function OnboardingPage(): JSX.Element {
     goBack();
   }
 
+  async function finishOnboarding(cameraGranted: boolean): Promise<void> {
+    setIsCompleting(true);
+    const completedAt = new Date().toISOString();
+    await completeOnboardingStorage({
+      completedAt,
+      goals: selectedGoals,
+      fitnessLevel: selectedFitnessLevel,
+      limitations: selectedLimitations,
+      limitationNotes,
+      cameraPermissionGranted: cameraGranted,
+    });
+    markOnboardingCompleteInMemory(completedAt);
+    setIsCompleting(false);
+    goHome();
+  }
+
+  async function handleCameraCta(): Promise<void> {
+    setCameraPermissionErrorMessage(null);
+    setCameraPermissionStatus('requesting');
+    const result: CameraPermissionResult = await requestCameraPermissionForOnboarding();
+    if (result.kind === 'granted') {
+      setCameraPermissionStatus('granted');
+      await finishOnboarding(true);
+      return;
+    }
+    if (result.kind === 'denied') {
+      setCameraPermissionStatus('denied');
+      setCameraPermissionErrorMessage(deniedMessageFor(result.reason));
+      return;
+    }
+    if (result.kind === 'unavailable') {
+      setCameraPermissionStatus('unavailable');
+      setCameraPermissionErrorMessage(unavailableMessageFor(result.reason));
+      return;
+    }
+    setCameraPermissionStatus('error');
+    setCameraPermissionErrorMessage(result.message);
+  }
+
+  function handleContinueWithoutCamera(): void {
+    if (isCompleting) {
+      return;
+    }
+    void finishOnboarding(false);
+  }
+
   function handlePrimary(): void {
-    if (isTransitioning || continueDisabled) {
+    if (isTransitioning || continueDisabled || isCompleting) {
       return;
     }
-
-    if (showPhase12Handoff) {
-      setTransitionDirection(-1);
-      setIsTransitioning(true);
-      setShowPhase12Handoff(false);
+    if (currentStep === 'camera_tutorial') {
+      void handleCameraCta();
       return;
     }
-
-    if (currentStep === 'fitness_level') {
-      setTransitionDirection(1);
-      setIsTransitioning(true);
-      setShowPhase12Handoff(true);
-      return;
-    }
-
     setTransitionDirection(1);
     setIsTransitioning(true);
     goNext();
   }
 
   function handleStepSelect(stepNumber: number): void {
-    if (isTransitioning) {
+    if (isTransitioning || isCompleting) {
       return;
     }
-
     if (stepNumber >= currentStepNumber) {
       return;
     }
-
     const step = getStepFromNumber(stepNumber);
     if (step === null) {
       return;
     }
-
     setTransitionDirection(-1);
     setIsTransitioning(true);
-    setShowPhase12Handoff(false);
     setStep(step);
   }
 
   function renderStep(): JSX.Element {
-    if (showPhase12Handoff) {
-      return <Phase12HandoffPanel headingId={headingId} />;
-    }
-
     switch (currentStep) {
       case 'welcome':
         return <WelcomeStep headingId={headingId} />;
@@ -152,6 +232,26 @@ export default function OnboardingPage(): JSX.Element {
             onSelectFitnessLevel={setFitnessLevel}
           />
         );
+      case 'limitations':
+        return (
+          <LimitationsStep
+            headingId={headingId}
+            selectedLimitations={selectedLimitations}
+            limitationNotes={limitationNotes}
+            onToggleLimitation={toggleLimitation}
+            onChangeLimitationNotes={setLimitationNotes}
+          />
+        );
+      case 'camera_tutorial':
+        return (
+          <CameraTutorialStep
+            headingId={headingId}
+            cameraPermissionStatus={cameraPermissionStatus}
+            cameraPermissionErrorMessage={cameraPermissionErrorMessage}
+            isCompleting={isCompleting}
+            onContinueWithoutCamera={handleContinueWithoutCamera}
+          />
+        );
       default:
         return <WelcomeStep headingId={headingId} />;
     }
@@ -161,20 +261,21 @@ export default function OnboardingPage(): JSX.Element {
     <OnboardingShell
       currentStepNumber={currentStepNumber}
       totalSteps={ONBOARDING_TOTAL_STEPS}
-      phaseMaxStepNumber={PHASE_11_ONBOARDING_STEPS.length}
       headingId={headingId}
-      transitionKey={viewKey}
+      transitionKey={currentStep}
       backLabel={backLabel}
       primaryLabel={primaryLabel}
       primaryDisabled={continueDisabled}
-      controlsDisabled={isTransitioning}
+      primaryLoading={primaryLoading}
+      primaryLoadingLabel={primaryLoadingLabel}
+      controlsDisabled={isTransitioning || isCompleting}
       onBack={handleBack}
       onPrimary={handlePrimary}
       onStepSelect={handleStepSelect}
     >
       <AnimatePresence mode="wait" custom={transitionDirection}>
         <motion.div
-          key={viewKey}
+          key={currentStep}
           custom={transitionDirection}
           variants={{
             enter: (direction: TransitionDirection) => ({

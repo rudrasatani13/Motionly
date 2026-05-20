@@ -1,16 +1,25 @@
 import { create } from 'zustand';
 
-import type {
-  FitnessLevel,
-  OnboardingDraft,
-  OnboardingGoal,
-  OnboardingStep,
+import {
+  LIMITATION_NOTES_MAX_LENGTH,
+  type CameraPermissionStatus,
+  type FitnessLevel,
+  type MovementLimitation,
+  type OnboardingDraft,
+  type OnboardingGoal,
+  type OnboardingStep,
 } from '@/types/onboarding';
 
-const PHASE_11_STEPS: OnboardingStep[] = ['welcome', 'goal', 'fitness_level'];
+const ONBOARDING_STEPS: OnboardingStep[] = [
+  'welcome',
+  'goal',
+  'fitness_level',
+  'limitations',
+  'camera_tutorial',
+];
 
-export const ONBOARDING_TOTAL_STEPS = 5;
-export const PHASE_11_ONBOARDING_STEPS = PHASE_11_STEPS;
+export const ONBOARDING_TOTAL_STEPS = ONBOARDING_STEPS.length;
+export const ONBOARDING_STEP_ORDER = ONBOARDING_STEPS;
 
 export type OnboardingStore = OnboardingDraft & {
   setStep: (step: OnboardingStep) => void;
@@ -18,6 +27,11 @@ export type OnboardingStore = OnboardingDraft & {
   goBack: () => void;
   toggleGoal: (goal: OnboardingGoal) => void;
   setFitnessLevel: (level: FitnessLevel) => void;
+  toggleLimitation: (limitation: MovementLimitation) => void;
+  setLimitationNotes: (notes: string) => void;
+  setCameraPermissionStatus: (status: CameraPermissionStatus) => void;
+  setCameraPermissionErrorMessage: (message: string | null) => void;
+  markOnboardingCompleteInMemory: (completedAt: string) => void;
   resetOnboardingDraft: () => void;
 };
 
@@ -25,10 +39,15 @@ const initialDraft: OnboardingDraft = {
   currentStep: 'welcome',
   selectedGoals: [],
   selectedFitnessLevel: null,
+  selectedLimitations: [],
+  limitationNotes: '',
+  cameraPermissionStatus: 'idle',
+  cameraPermissionErrorMessage: null,
+  onboardingCompletedAt: null,
 };
 
 function stepIndex(step: OnboardingStep): number {
-  return PHASE_11_STEPS.indexOf(step);
+  return ONBOARDING_STEPS.indexOf(step);
 }
 
 export function getOnboardingStepNumber(step: OnboardingStep): number {
@@ -44,15 +63,15 @@ export const useOnboardingStore = create<OnboardingStore>((set) => ({
 
   goNext: () => {
     set((state) => {
-      const nextIndex = Math.min(stepIndex(state.currentStep) + 1, PHASE_11_STEPS.length - 1);
-      return { currentStep: PHASE_11_STEPS[nextIndex] };
+      const nextIndex = Math.min(stepIndex(state.currentStep) + 1, ONBOARDING_STEPS.length - 1);
+      return { currentStep: ONBOARDING_STEPS[nextIndex] };
     });
   },
 
   goBack: () => {
     set((state) => {
       const previousIndex = Math.max(stepIndex(state.currentStep) - 1, 0);
-      return { currentStep: PHASE_11_STEPS[previousIndex] };
+      return { currentStep: ONBOARDING_STEPS[previousIndex] };
     });
   },
 
@@ -69,6 +88,39 @@ export const useOnboardingStore = create<OnboardingStore>((set) => ({
 
   setFitnessLevel: (level) => {
     set({ selectedFitnessLevel: level });
+  },
+
+  toggleLimitation: (limitation) => {
+    set((state) => {
+      const isSelected = state.selectedLimitations.includes(limitation);
+      // Selecting "none" clears all other limitations; selecting any
+      // specific limitation while "none" is in the list removes "none".
+      if (limitation === 'none') {
+        return { selectedLimitations: isSelected ? [] : ['none'] };
+      }
+      const withoutNone = state.selectedLimitations.filter((value) => value !== 'none');
+      return {
+        selectedLimitations: isSelected
+          ? withoutNone.filter((value) => value !== limitation)
+          : [...withoutNone, limitation],
+      };
+    });
+  },
+
+  setLimitationNotes: (notes) => {
+    set({ limitationNotes: notes.slice(0, LIMITATION_NOTES_MAX_LENGTH) });
+  },
+
+  setCameraPermissionStatus: (status) => {
+    set({ cameraPermissionStatus: status });
+  },
+
+  setCameraPermissionErrorMessage: (message) => {
+    set({ cameraPermissionErrorMessage: message });
+  },
+
+  markOnboardingCompleteInMemory: (completedAt) => {
+    set({ onboardingCompletedAt: completedAt });
   },
 
   resetOnboardingDraft: () => {

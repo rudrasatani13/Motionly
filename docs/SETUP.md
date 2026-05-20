@@ -540,13 +540,55 @@ Manual checks:
 - Select multiple goals, go back to step 1, then continue again. The selected goals should still be selected.
 - Step 3 Continue must stay disabled until one fitness level is selected. Selecting a second level should replace the first.
 - Step 3 back should return to step 2 with all goal selections preserved.
-- Step 3 Continue should show the honest Phase 12 handoff. It must not navigate home, write `hasOnboarded`, request camera permission, or fake onboarding completion.
+- Step 3 Continue should now navigate to step 4 (Limitations) — see §16i for Phase 12 manual QA. It should never navigate home, fake completion, or request camera permission directly from step 3.
 - Refresh behavior is intentionally local: Phase 11 selections may reset after a full browser refresh because persistence is not implemented yet.
 - Check 5.0-inch and 6.7-inch mobile viewport sizes. Text should not overlap, the primary CTA should remain reachable, and the PWA status pill should remain visible.
 - Check keyboard navigation: back button, progress-back dots, goal cards, fitness cards, CTA, and sign-in link should all be reachable with visible focus.
 - Check reduced motion in DevTools. Step transitions should become instant or softened.
 - Check light and dark themes. All selected states must be visible without relying on color alone.
 - Confirm no fake users, workouts, stats, AI feedback, Supabase/auth/camera/ML code, `localStorage`, or IndexedDB writes were added.
+
+## 16i. Onboarding Screens 4–5 + Completion Manual QA (Phase 12)
+
+Phase 12 completes onboarding with the limitations screen, the camera tutorial / permission primer, and the IndexedDB completion write. No new dependencies are added.
+
+```bash
+pnpm install
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm build
+pnpm dev
+```
+
+Manual checks (use Chrome DevTools → Application → Storage → Clear site data before starting):
+
+- Open `/`. After the Phase 10 splash, the app should land on `/welcome` (no real `hasOnboarded` flag exists yet).
+- Tap "Get Started" and complete steps 1–3 (welcome, goals, fitness level) as in §16h.
+- **Step 4 — Limitations:**
+  - Heading reads "Anything we should work around?" with supporting copy.
+  - Chips: Lower back, Knees, Shoulders, Hips, Ankles, Wrists, None.
+  - Continue must stay disabled until at least one chip — including "None" — is selected.
+  - Select multiple specific limitations; verify each chip shows the pressed state (border + tone change, not color alone).
+  - Tap "None"; verify all other limitations clear and only "None" remains selected.
+  - Tap a specific limitation again; verify "None" clears.
+  - Type an optional note up to 120 characters; verify the live counter, that input is capped at 120 chars (extra keystrokes are ignored), and that the safety helper text ("If something hurts during a workout, stop. Motionly is a coach, not medical care.") is visible.
+  - Tab through chips and the note field — focus rings must be visible.
+- **Step 5 — Camera Tutorial / Permission Primer:**
+  - Heading reads "Set up your camera safely." with explainer copy clarifying that video is processed on device, never uploaded, and that permission can be changed in browser settings.
+  - Exactly three setup points: "Place your phone 2–3 meters away", "Make sure your full body is visible", "Good lighting = better coaching".
+  - On step entry, no browser camera prompt fires — the page never auto-requests permission.
+  - The primary CTA reads "Allow camera access". Tap it. The browser permission prompt should appear; the button shows a loading state until it resolves.
+  - **Granted path:** Accept the prompt. The status message switches to a success tone, IndexedDB receives `hasOnboarded = true` plus a completion record, and the app navigates to Home `/`. Inspect DevTools → Application → IndexedDB → `motionly` → `onboarding` to confirm `hasOnboarded === true` and a `completion` record exists. Confirm the camera indicator (browser tab / system) turns off immediately — Phase 12 stops every track.
+  - **Denied path:** Reload, restart the flow, deny the prompt. A warning status appears with retry guidance. The CTA relabels to "Try again". "Continue without camera for now" appears as a secondary action; tapping it writes the completion record (with `cameraPermissionGranted: false`) and navigates Home without claiming the camera was granted.
+  - **Unavailable / error path (if practical):** In Chrome DevTools, disable the camera device or load over a non-secure host (e.g. an IP without HTTPS) — the warning explains the situation and "Continue without camera for now" is offered.
+- **Persistence check:** After completing onboarding, reload `/`. The launch gate should now route to Home `/` (the Phase 6 placeholder), NOT `/welcome`.
+- **Reset check:** Clear site data again. Reload `/`. The launch gate should once again route to `/welcome`.
+- **Android Chrome on a real phone (LAN URL printed by `pnpm dev`):** confirm the permission prompt copy is understandable, denial guidance is reasonable, and the "Continue without camera for now" path completes without fake "camera ready" messaging.
+- **HTTPS / localhost secure context:** Camera permission only works on `https://` or `http://localhost`. On a plain `http://<ip>` URL the adapter resolves `unavailable` with the insecure-context explainer — verify this rather than treating it as a bug.
+- Check reduced motion in DevTools. The camera tutorial card entrance animations should become instant.
+- Check light and dark themes. All selected states, status banners, and CTAs must be visible without relying on color alone.
+- Confirm no fake users, fake sessions, fake workouts, fake stats, fake AI feedback, no live camera preview, and no skeleton overlay were added.
 
 ## 17. Testing PWA Installability (Android Chrome)
 
@@ -671,6 +713,8 @@ Per `MOTIONLY_MASTER_PLAN.md`, the following are deferred to their own phases. D
 - Settings UI and accessibility audit (Phases 45–47)
 
 > Phase 11 is complete for onboarding screens 1–3 only. The `/welcome` entry screen and the first three internal `/onboarding` steps are live with in-memory selections, but screens 4–5, real `hasOnboarded` writes, real Supabase session rehydration, and real protected redirect rules are still deferred to their own phases.
+
+> Phase 12 is complete: all five onboarding screens render, limitations select correctly with mutually-exclusive "None" behavior, the optional note is capped at 120 characters, the camera permission is requested only after the user taps the CTA, every media track is stopped immediately, and onboarding completion writes `hasOnboarded = true` plus a minimal record to IndexedDB before navigating to Home `/`. Real dashboard, workouts, live camera preview, ML, Supabase, auth, payments, and analytics remain deferred.
 
 ## 22. Phase 2 Success Checklist
 
